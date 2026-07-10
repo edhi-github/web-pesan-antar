@@ -63,6 +63,7 @@
 
     <!-- INTERAKSI JAVASCRIPT LOKAL -->
     <script>
+        const API_URL = 'https://nodejs-pesan-antar-production.up.railway.app';
         // Ambil parameter '?shop=slug-warung' dari URL browser
         const urlParams = new URLSearchParams(window.location.search);
         const currentShopSlug = urlParams.get('shop');
@@ -87,7 +88,7 @@
             if (!currentShopSlug) return;
 
             // Mengirim query string ?shop= ke backend
-            fetch(`http://172.16.12.187:3000/api/orders/active?shop=${currentShopSlug}`)
+            fetch(`${API_URL}/api/orders/active?shop=${currentShopSlug}`)
             .then(res => res.json())
             .then(data => {
                 const container = document.getElementById('container-pesanan-aktif');
@@ -157,7 +158,7 @@
 
         function selesaikanPesanan(idOrder) {
             if (confirm(`Yakin pesanan #ORD-${idOrder} sudah selesai?`)) {
-                fetch(`http://172.16.12.187:3000/api/orders/${idOrder}/complete`, {
+                fetch(`${API_URL}/api/orders/${idOrder}/complete`, {
                     method: 'PATCH'
                 })
                 .then(res => res.json())
@@ -195,7 +196,7 @@
             if (!currentShopSlug) return;
 
             // Mengirim query string ?shop= ke backend untuk penyaringan riwayat
-            fetch(`http://172.16.12.187:3000/api/orders/history?shop=${currentShopSlug}`)
+            fetch(`${API_URL}/api/orders/history?shop=${currentShopSlug}`)
             .then(res => res.json())
             .then(data => {
                 const containerRiwayat = document.getElementById('container-pesanan-selesai');
