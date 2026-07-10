@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dapur Utama - Login Internal</title>
+    <!-- Menggunakan Tailwind CSS agar konsisten dengan penjualan.html -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-800 antialiased font-sans min-h-screen flex flex-col justify-center">
+    <script src="config.js"></script>
+
+    <div class="max-w-md w-full mx-auto p-6">
+        <div class="bg-white rounded-2xl shadow-md border border-gray-200 p-6">
+            
+            <!-- HEADER LOGIN DINAMIS -->
+            <div class="text-center mb-6">
+                <h1 id="nama-warung-login" class="text-xl font-black text-gray-900 tracking-tight uppercase">DAPUR WARUNG</h1>
+                <p class="text-xs text-gray-500 mt-1">Silakan login untuk masuk ke Monitor Pesanan</p>
+            </div>
+
+            <!-- FORM LOGIN -->
+            <form id="form-login" onsubmit="prosesLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-1">Username / ID Staf</label>
+                    <input type="text" id="username" required class="w-full px-3 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-1">Password</label>
+                    <input type="password" id="password" required class="w-full px-3 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                </div>
+
+                <!-- ALERT ERROR -->
+                <div id="error-message" class="text-xs text-red-600 bg-red-50 p-2.5 rounded-lg hidden font-medium"></div>
+
+                <button type="submit" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-xl shadow-md transition active:scale-[0.98] text-sm">
+                    Masuk ke Sistem Dapur →
+                </button>
+            </form>
+
+        </div>
+    </div>
+
+    <!-- INTERAKSI JAVASCRIPT LOKAL -->
+    <script>
+       // 1. Ambil parameter '?shop=slug-warung' dari URL browser
+        const urlParams = new URLSearchParams(window.location.search);
+        let currentShopSlug = urlParams.get('shop');
+
+        // 2. Validasi parameter shop (Sekarang hanya bersifat opsional/peringatan, tidak mengunci login)
+        if (!currentShopSlug) {
+            console.warn("Peringatan: URL login tidak memiliki parameter warung.");
+            document.getElementById('nama-warung-login').innerText = `LOGIN INTERNAL DAPUR`;
+        } else {
+            // Ubah teks judul login sesuai nama warung secara dinamins
+            document.getElementById('nama-warung-login').innerText = `LOGIN DAPUR ${currentShopSlug.replace(/-/g, ' ')}`;
+        }
+
+        // 3. Proses submit form login
+        function prosesLogin(event) {
+            event.preventDefault(); 
+
+            const usernameInput = document.getElementById('username').value;
+            const passwordInput = document.getElementById('password').value;
+            const errorDiv = document.getElementById('error-message');
+            
+            errorDiv.classList.add('hidden');
+
+            // Payload login (shop boleh null/empty jika tidak ada di URL)
+            const payload = {
+                username: usernameInput,
+                password: passwordInput,
+                shop: currentShopSlug 
+            };
+
+            // Mengirim request login ke backend API
+            fetch(`${API_URL}/api/auth/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    // Mengambil slug asli yang dikembalikan oleh backend jika di URL awal kosong
+                    const targetSlug = currentShopSlug || data.slug;
+
+                    // Alihkan ke penjualan.html membawa parameter shop yang valid
+                    window.location.href = `penjualan.html?shop=${targetSlug}`;
+                } else {
+                    errorDiv.innerText = data.message || 'Username atau password salah.';
+                    errorDiv.classList.remove('hidden');
+                }
+            })
+            .catch(err => {
+                console.error('Error saat login:', err);
+                errorDiv.innerText = 'Gagal terhubung ke server autentikasi.';
+                errorDiv.classList.remove('hidden');
+            });
+        }
+    </script>
+</body>
+</html>

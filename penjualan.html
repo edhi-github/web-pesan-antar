@@ -8,6 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 text-gray-800 antialiased font-sans">
+    <script src="config.js"></script>
 
     <!-- 1. FIXED HEADER -->
     <header class="bg-white shadow-md sticky top-0 z-10 border-b border-gray-200">
@@ -63,7 +64,6 @@
 
     <!-- INTERAKSI JAVASCRIPT LOKAL -->
     <script>
-        const API_URL = 'https://nodejs-pesan-antar-production.up.railway.app';
         // Ambil parameter '?shop=slug-warung' dari URL browser
         const urlParams = new URLSearchParams(window.location.search);
         const currentShopSlug = urlParams.get('shop');

@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 text-gray-800 antialiased font-sans">
-
+    <script src="config.js"></script>
     <!-- 1. HEADER TOKO (DINAMIS) -->
     <header class="bg-white shadow-sm sticky top-0 z-10">
         <div class="max-w-md mx-auto px-4 py-4 flex justify-between items-center">
@@ -51,25 +51,56 @@
         </div>
     </div>
 
-    <!-- MODAL FORMULIR PESANAN (SAMA SEPERTI SEBELUMNYA) -->
+    <!-- 4. MODAL FORMULIR PESANAN -->
     <div id="order-modal" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden flex items-end sm:items-center justify-center p-4">
-        <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto space-y-4">
+        <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto space-y-4 transform transition-all">
             <div class="flex justify-between items-center border-b pb-3">
-                <h3 class="text-lg font-bold text-gray-900">Review Pesanan</h3>
-                <button onclick="tutupModalPesanan()" class="text-gray-400 font-bold">×</button>
+                <h3 class="text-lg font-bold text-gray-900">Review & Data Pesanan</h3>
+                <button onclick="tutupModalPesanan()" class="text-gray-400 hover:text-gray-600 text-2xl font-bold">×</button>
             </div>
-            <div id="modal-items-list" class="space-y-2 max-h-40 overflow-y-auto pr-1"></div>
+            
+            <!-- REVIEW ITEM YANG DIPESAN -->
+            <div>
+                <h4 class="text-xs font-bold text-gray-500 uppercase mb-2">Item yang Anda Pilih:</h4>
+                <div id="modal-items-list" class="space-y-2 max-h-40 overflow-y-auto pr-1">
+                    <!-- Konten dinamis masuk di sini -->
+                </div>
+            </div>
+
+            <hr class="border-gray-100">
+
+            <!-- Form Input Data Diri -->
             <form id="form-checkout" class="space-y-3" onsubmit="kirimPesananKeSistem(event)">
-                <input type="text" id="cust-name" required placeholder="Nama Anda" class="w-full border p-2.5 rounded-lg text-sm">
-                <input type="tel" id="cust-phone" required placeholder="WhatsApp" class="w-full border p-2.5 rounded-lg text-sm">
-                <input type="text" id="cust-table" required placeholder="Nomor Meja" class="w-full border p-2.5 rounded-lg text-sm">
-                <button type="submit" class="w-full bg-green-600 text-white font-bold py-3 rounded-xl mt-4">Kirim Pesanan</button>
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Nama Anda</label>
+                    <input type="text" id="cust-name" required placeholder="Contoh: Budi Santoso" 
+                           class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Nomor HP / WhatsApp</label>
+                    <input type="tel" id="cust-phone" required placeholder="Contoh: 08123456xxx" 
+                           class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Nomor Meja / Catatan Tempat</label>
+                    <input type="text" id="cust-table" required placeholder="Contoh: Meja 4 / Bungkus" 
+                           class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none">
+                </div>
+
+                <div class="border-t pt-3 mt-4 flex justify-between items-center text-sm font-bold">
+                    <span>Total Pembayaran:</span>
+                    <span id="modal-total" class="text-orange-600 text-lg">Rp 0</span>
+                </div>
+
+                <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl shadow-md mt-4 transition">
+                    🚀 Kirim Pesanan ke Penjual
+                </button>
             </form>
         </div>
     </div>
 
     <script>
-        const API_URL = 'https://nodejs-pesan-antar-production.up.railway.app';
+        //const API_URL = 'http://172.16.12.245:3000';
         const urlParams = new URLSearchParams(window.location.search);
         const currentShopSlug = urlParams.get('shop');
 
@@ -96,39 +127,181 @@
             fetch(`${API_URL}/api/products?shop=${currentShopSlug}`)
                 .then(res => res.json())
                 .then(response => {
-                    if (!response.success || response.data.length === 0) {
-                        containerMenu.innerHTML = '<div class="text-center py-10 text-gray-400 text-sm">Belum ada menu tersedia.</div>';
+                    if (!response.success || !response.data || response.data.length === 0) {
+                        containerMenu.innerHTML = '<div class="text-center py-10 text-gray-400 text-sm">Belum ada menu yang tersedia saat ini.</div>';
                         return;
                     }
+
                     containerMenu.innerHTML = ''; 
+
                     response.data.forEach(produk => {
+                        const dbId = produk.id;
+                        const dbNama = produk.name || produk.nama;
+                        const dbHarga = produk.price || produk.harga;
+                        const dbDeskripsi = produk.description || produk.deskripsi || '';
+                        const dbKategori = produk.category || produk.kategori || 'Menu';
+                        const dbFoto = produk.image_url || produk.foto;
+                        
+                        // 1. BACA STATUS KETERSEDIAAN (is_available)
+                        // Jika is_available nilainya 0, false, atau '0', berarti produk habis.
                         const tersedia = (produk.is_available !== 0 && produk.is_available !== '0' && produk.is_available !== false);
-                        const kartu = `
-                            <div class="bg-white rounded-xl p-3 shadow-sm border border-gray-100 flex gap-3 ${!tersedia ? 'opacity-60' : ''}">
-                                <img src="${produk.image_url ? `${API_URL}${produk.image_url}` : 'https://via.placeholder.com/150'}" class="w-20 h-20 object-cover rounded-lg">
-                                <div class="flex-1">
-                                    <h3 class="font-semibold text-sm">${produk.name}</h3>
-                                    <p class="text-sm font-bold text-gray-900">Rp ${Number(produk.price).toLocaleString('id-ID')}</p>
-                                    ${tersedia ? `<button onclick="tambahItem('${produk.id}', '${produk.name.replace(/'/g, "\\'")}', ${produk.price})" class="mt-2 bg-orange-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg">+ Tambah</button>` : '<span class="text-xs text-red-500 font-bold">Habis</span>'}
+
+                        // --- JIKA ANDA INGIN PRODUK HABIS LANGSUNG DISEMBUNYIKAN (OPSI 2) ---
+                        // Cukup hapus tanda komentar pada 2 baris di bawah ini:
+                        // if (!tersedia) return; 
+                        // -------------------------------------------------------------------
+
+                        const ruteLengkapFoto = dbFoto ? `${API_URL}${dbFoto}` : 'https://via.placeholder.com/150';
+
+                        // 2. ATUR ATRIBUT TOMBOL & STYLE BERDASARKAN STATUS STOK
+                        let tombolHtml = '';
+                        let styleKartuHabis = '';
+                        let styleFotoHabis = '';
+
+                        if (tersedia) {
+                            // Jika tersedia: tombol aktif seperti biasa
+                            tombolHtml = `
+                                <button onclick="tambahItem('${dbId}', '${dbNama.replace(/'/g, "\\'")}', ${dbHarga})" 
+                                        class="bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition active:scale-95">
+                                    + Tambah
+                                </button>
+                            `;
+                        } else {
+                            // Jika habis: tombol mati (disabled), kartu dibuat buram, foto dibuat hitam-putih
+                            styleKartuHabis = 'opacity-60 relative select-none';
+                            styleFotoHabis = 'grayscale';
+                            tombolHtml = `
+                                <span class="text-xs font-bold text-red-500 bg-red-50 px-2 py-1 rounded-md border border-red-100">
+                                    Habis
+                                </span>
+                            `;
+                        }
+
+                        const kartuMenuHtml = `
+                            <div class="bg-white rounded-xl p-3 shadow-sm border border-gray-100 flex gap-3 ${styleKartuHabis}">
+                                <!-- Efek overlay transparan jika produk habis -->
+                                ${!tersedia ? '<div class="absolute inset-0 bg-gray-50 bg-opacity-10 rounded-xl z-0"></div>' : ''}
+                                
+                                <!-- Foto Makanan -->
+                                <img src="${ruteLengkapFoto}" alt="${dbNama}" class="w-20 h-20 object-cover rounded-lg flex-shrink-0 bg-gray-100 z-10 ${styleFotoHabis}">
+                                
+                                <div class="flex-1 flex flex-col justify-between z-10">
+                                    <div>
+                                        <div class="flex justify-between items-start">
+                                            <h3 class="font-semibold text-sm ${tersedia ? 'text-gray-900' : 'text-gray-400 line-through'}">${dbNama}</h3>
+                                            <span class="text-[9px] bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded font-bold uppercase tracking-wide">${dbKategori}</span>
+                                        </div>
+                                        <p class="text-xs text-gray-500 mt-0.5 line-clamp-2">${dbDeskripsi}</p>
+                                    </div>
+                                    <div class="flex justify-between items-center mt-2">
+                                        <span class="text-sm font-bold ${tersedia ? 'text-gray-900' : 'text-gray-400'}">Rp ${Number(dbHarga).toLocaleString('id-ID')}</span>
+                                        <!-- Render tombol/label sesuai status ketersediaan -->
+                                        ${tombolHtml}
+                                    </div>
                                 </div>
                             </div>
                         `;
-                        containerMenu.insertAdjacentHTML('beforeend', kartu);
+                        containerMenu.insertAdjacentHTML('beforeend', kartuMenuHtml);
                     });
                 })
                 .catch(err => {
-                    containerMenu.innerHTML = '<div class="text-center py-10 text-red-500 text-sm">Gagal memuat menu.</div>';
+                    console.error('Gagal mengambil data menu:', err);
+                    containerMenu.innerHTML = '<div class="text-center py-10 text-red-500 text-sm">Gagal terhubung ke server database menu.</div>';
                 });
         }
 
-        // --- Fungsi Keranjang Tetap Sama, Cukup Update Payload Checkout ---
+        // 2. LOGIKA KERANJANG BELANJA
+        function tambahItem(productIdAsli, nama, harga) {
+            // idUnik digunakan agar pembeli bisa menambahkan makanan yang sama berkali-kali namun dengan catatan berbeda
+            const idUnik = Date.now() + Math.random().toString(36).substr(2, 9);
+            keranjang.push({ 
+                id: idUnik, 
+                product_id: productIdAsli, // Disimpan untuk dikirim ke tabel detail_orders backend
+                nama: nama, 
+                harga: Number(harga),
+                catatan: '' 
+            });
+            hitungTotal();
+        }
+
+        function hapusItem(idUnik) {
+            keranjang = keranjang.filter(item => item.id !== idUnik);
+            hitungTotal();
+            renderModalItems();
+
+            if (keranjang.length === 0) {
+                tutupModalPesanan();
+            }
+        }
+
+        function hitungTotal() {
+            totalHarga = keranjang.reduce((sum, item) => sum + item.harga, 0);
+            
+            const cartBar = document.getElementById('cart-bar');
+            if(keranjang.length > 0) {
+                cartBar.classList.remove('hidden');
+                document.getElementById('cart-count').innerText = `${keranjang.length} Makanan/Minuman dipilih`;
+                document.getElementById('cart-total').innerText = `Rp ${totalHarga.toLocaleString('id-ID')}`;
+            } else {
+                cartBar.classList.add('hidden');
+            }
+        }
+
+        function renderModalItems() {
+            const listContainer = document.getElementById('modal-items-list');
+            listContainer.innerHTML = ''; 
+
+            keranjang.forEach((item) => {
+                const row = document.createElement('div');
+                row.className = "bg-gray-50 p-3 rounded-lg text-sm border border-gray-100 space-y-2";
+                row.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <div class="flex-1">
+                            <span class="font-semibold text-gray-800">${item.nama}</span>
+                            <span class="block text-xs text-gray-500">Rp ${item.harga.toLocaleString('id-ID')}</span>
+                        </div>
+                        <button type="button" onclick="hapusItem('${item.id}')" class="text-red-500 hover:text-red-700 font-medium text-xs px-2 py-1 rounded hover:bg-red-50 transition">
+                            Hapus
+                        </button>
+                    </div>
+                    <div>
+                        <input type="text" 
+                            id="note-${item.id}" 
+                            placeholder="Catatan (misal: pedas sekali, pisah kuah)..." 
+                            value="${item.catatan || ''}"
+                            onchange="updateCatatan('${item.id}', this.value)"
+                            class="w-full bg-white border border-gray-200 rounded-md p-1.5 text-xs text-gray-600 focus:ring-1 focus:ring-orange-500 focus:outline-none placeholder-gray-400">
+                    </div>
+                `;
+                listContainer.appendChild(row);
+            });
+
+            document.getElementById('modal-total').innerText = `Rp ${totalHarga.toLocaleString('id-ID')}`;
+        }
+
+        function updateCatatan(idUnik, teksCatatan) {
+            const item = keranjang.find(item => item.id === idUnik);
+            if (item) {
+                item.catatan = teksCatatan;
+            }
+        }
+
+        function bukaModalPesanan() {
+            document.getElementById('order-modal').classList.remove('hidden');
+            renderModalItems(); 
+        }
+
+        function tutupModalPesanan() {
+            document.getElementById('order-modal').classList.add('hidden');
+        }
 
         function kirimPesananKeSistem(event) {
             event.preventDefault();
             
+            const nama = document.getElementById('cust-name').value;
             const payloadPesanan = {
                 shop: currentShopSlug, // Kirim slug toko agar backend tahu ini pesanan untuk siapa
-                customer_name: document.getElementById('cust-name').value,
+                customer_name: nama,
                 customer_phone: document.getElementById('cust-phone').value,
                 table_or_address: document.getElementById('cust-table').value,
                 total_price: totalHarga,
@@ -143,35 +316,65 @@
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    alert('Pesanan berhasil dikirim!');
+                    alert(`Terima kasih ${nama}! Pesanan Berhasil Masuk Dapur (ID: #ORD-${data.order_id})`);
                     window.location.reload();
                 } else {
                     alert('Gagal: ' + data.message);
                 }
             });
         }
-        
-        // (Fungsi bantu tambahItem, hitungTotal, dsb tetap dipertahankan seperti script sebelumnya)
-        function tambahItem(productIdAsli, nama, harga) {
-            const idUnik = Date.now() + Math.random().toString(36).substr(2, 9);
-            keranjang.push({ id: idUnik, product_id: productIdAsli, nama: nama, harga: Number(harga), catatan: '' });
-            hitungTotal();
-        }
 
-        function hitungTotal() {
-            totalHarga = keranjang.reduce((sum, item) => sum + item.harga, 0);
-            const cartBar = document.getElementById('cart-bar');
-            if(keranjang.length > 0) {
-                cartBar.classList.remove('hidden');
-                document.getElementById('cart-count').innerText = `${keranjang.length} Item dipilih`;
-                document.getElementById('cart-total').innerText = `Rp ${totalHarga.toLocaleString('id-ID')}`;
-            } else {
-                cartBar.classList.add('hidden');
-            }
-        }
-        
-        function bukaModalPesanan() { document.getElementById('order-modal').classList.remove('hidden'); }
-        function tutupModalPesanan() { document.getElementById('order-modal').classList.add('hidden'); }
+        // 3. FUNGSI KIRIM DATA CHECKOUT KE BACKEND SECARA VALID
+        /*function kirimPesananKeSistem(event) {
+            event.preventDefault();
+            
+            const nama = document.getElementById('cust-name').value;
+            const phone = document.getElementById('cust-phone').value;
+            const table = document.getElementById('cust-table').value;
+
+            // Memetakan struktur keranjang langsung ke ID produk asli database harian
+            const itemsValid = keranjang.map(item => {
+                return {
+                    product_id: item.product_id, // Menggunakan ID murni database produk Anda
+                    harga: item.harga,
+                    catatan: item.catatan || ''
+                }
+            });
+
+            const payloadPesanan = {
+                customer_name: nama,
+                customer_phone: phone,
+                table_or_address: table,
+                total_price: totalHarga,
+                items: itemsValid
+            };
+
+            // Mengirimkan data pesanan asli ke endpoint post orders Anda
+            fetch(`${API_URL}/api/orders`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payloadPesanan)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Terima kasih ${nama}! Pesanan Berhasil Masuk Dapur (ID: #ORD-${data.order_id})`);
+                    // Reset total isi halaman belanjaan harian
+                    keranjang = [];
+                    hitungTotal();
+                    tutupModalPesanan();
+                    document.getElementById('form-checkout').reset();
+                } else {
+                    alert('Gagal mengirim pesanan: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error Checkout:', error);
+                alert('Tidak bisa terhubung ke server backend. Pastikan server Node.js di IP 172.16.12.187 aktif!');
+            });
+        }*/
     </script>
 </body>
 </html>
