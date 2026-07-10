@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Pemesanan Digital</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 antialiased font-sans">
+
+    <!-- 1. HEADER TOKO (DINAMIS) -->
+    <header class="bg-white shadow-sm sticky top-0 z-10">
+        <div class="max-w-md mx-auto px-4 py-4 flex justify-between items-center">
+            <div>
+                <h1 id="header-nama-warung" class="text-xl font-bold text-orange-600 uppercase">Memuat...</h1>
+                <p id="header-desc" class="text-xs text-gray-500">Menghubungkan ke toko...</p>
+            </div>
+            <span class="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1">
+                <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Buka
+            </span>
+        </div>
+    </header>
+
+    <main class="max-w-md mx-auto px-4 pt-4 pb-32">
+        <div id="container-pesan-error" class="hidden bg-red-50 border border-red-200 p-4 rounded-xl text-red-700 text-sm font-medium text-center">
+            Warung tidak ditemukan. Silakan cek link kembali.
+        </div>
+
+        <div id="konten-toko">
+            <div class="bg-orange-50 border border-orange-200 rounded-xl p-3 mb-6 text-sm text-orange-800">
+                📣 <strong>Menu Hari Ini:</strong> Pilih menu di bawah. Pesanan akan langsung masuk ke dapur kami!
+            </div>
+
+            <h2 class="text-lg font-bold mb-3 flex items-center gap-2">🍛 Daftar Menu</h2>
+            <div id="container-menu" class="space-y-4">
+                <div class="text-center py-10 text-gray-400 text-sm animate-pulse">Memuat menu...</div>
+            </div>
+        </div>
+    </main>
+
+    <!-- BAR STICKY KERANJANG -->
+    <div id="cart-bar" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-xl hidden z-20">
+        <div class="max-w-md mx-auto flex justify-between items-center">
+            <div>
+                <p id="cart-count" class="text-xs text-gray-500">0 Item terpilih</p>
+                <p id="cart-total" class="text-lg font-bold text-gray-900">Rp 0</p>
+            </div>
+            <button onclick="bukaModalPesanan()" class="bg-orange-600 hover:bg-orange-700 text-white text-sm font-bold px-5 py-2.5 rounded-xl shadow-md transition">
+                Lanjut Pesan →
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL FORMULIR PESANAN (SAMA SEPERTI SEBELUMNYA) -->
+    <div id="order-modal" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden flex items-end sm:items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="text-lg font-bold text-gray-900">Review Pesanan</h3>
+                <button onclick="tutupModalPesanan()" class="text-gray-400 font-bold">×</button>
+            </div>
+            <div id="modal-items-list" class="space-y-2 max-h-40 overflow-y-auto pr-1"></div>
+            <form id="form-checkout" class="space-y-3" onsubmit="kirimPesananKeSistem(event)">
+                <input type="text" id="cust-name" required placeholder="Nama Anda" class="w-full border p-2.5 rounded-lg text-sm">
+                <input type="tel" id="cust-phone" required placeholder="WhatsApp" class="w-full border p-2.5 rounded-lg text-sm">
+                <input type="text" id="cust-table" required placeholder="Nomor Meja" class="w-full border p-2.5 rounded-lg text-sm">
+                <button type="submit" class="w-full bg-green-600 text-white font-bold py-3 rounded-xl mt-4">Kirim Pesanan</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://172.16.12.187:3000';
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentShopSlug = urlParams.get('shop');
+
+        let keranjang = [];
+        let totalHarga = 0;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            if (!currentShopSlug) {
+                document.getElementById('konten-toko').classList.add('hidden');
+                document.getElementById('container-pesan-error').classList.remove('hidden');
+                return;
+            }
+
+            // Set Header Dinamis
+            document.getElementById('header-nama-warung').innerText = currentShopSlug.replace(/-/g, ' ');
+            document.getElementById('header-desc').innerText = "Selamat datang di warung kami";
+
+            muatProdukDariDatabase();
+        });
+
+        function muatProdukDariDatabase() {
+            const containerMenu = document.getElementById('container-menu');
+            // Menambahkan query string ?shop=
+            fetch(`${API_URL}/api/products?shop=${currentShopSlug}`)
+                .then(res => res.json())
+                .then(response => {
+                    if (!response.success || response.data.length === 0) {
+                        containerMenu.innerHTML = '<div class="text-center py-10 text-gray-400 text-sm">Belum ada menu tersedia.</div>';
+                        return;
+                    }
+                    containerMenu.innerHTML = ''; 
+                    response.data.forEach(produk => {
+                        const tersedia = (produk.is_available !== 0 && produk.is_available !== '0' && produk.is_available !== false);
+                        const kartu = `
+                            <div class="bg-white rounded-xl p-3 shadow-sm border border-gray-100 flex gap-3 ${!tersedia ? 'opacity-60' : ''}">
+                                <img src="${produk.image_url ? `${API_URL}${produk.image_url}` : 'https://via.placeholder.com/150'}" class="w-20 h-20 object-cover rounded-lg">
+                                <div class="flex-1">
+                                    <h3 class="font-semibold text-sm">${produk.name}</h3>
+                                    <p class="text-sm font-bold text-gray-900">Rp ${Number(produk.price).toLocaleString('id-ID')}</p>
+                                    ${tersedia ? `<button onclick="tambahItem('${produk.id}', '${produk.name.replace(/'/g, "\\'")}', ${produk.price})" class="mt-2 bg-orange-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg">+ Tambah</button>` : '<span class="text-xs text-red-500 font-bold">Habis</span>'}
+                                </div>
+                            </div>
+                        `;
+                        containerMenu.insertAdjacentHTML('beforeend', kartu);
+                    });
+                })
+                .catch(err => {
+                    containerMenu.innerHTML = '<div class="text-center py-10 text-red-500 text-sm">Gagal memuat menu.</div>';
+                });
+        }
+
+        // --- Fungsi Keranjang Tetap Sama, Cukup Update Payload Checkout ---
+
+        function kirimPesananKeSistem(event) {
+            event.preventDefault();
+            
+            const payloadPesanan = {
+                shop: currentShopSlug, // Kirim slug toko agar backend tahu ini pesanan untuk siapa
+                customer_name: document.getElementById('cust-name').value,
+                customer_phone: document.getElementById('cust-phone').value,
+                table_or_address: document.getElementById('cust-table').value,
+                total_price: totalHarga,
+                items: keranjang.map(item => ({ product_id: item.product_id, harga: item.harga, catatan: item.catatan }))
+            };
+
+            fetch(`${API_URL}/api/orders`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payloadPesanan)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Pesanan berhasil dikirim!');
+                    window.location.reload();
+                } else {
+                    alert('Gagal: ' + data.message);
+                }
+            });
+        }
+        
+        // (Fungsi bantu tambahItem, hitungTotal, dsb tetap dipertahankan seperti script sebelumnya)
+        function tambahItem(productIdAsli, nama, harga) {
+            const idUnik = Date.now() + Math.random().toString(36).substr(2, 9);
+            keranjang.push({ id: idUnik, product_id: productIdAsli, nama: nama, harga: Number(harga), catatan: '' });
+            hitungTotal();
+        }
+
+        function hitungTotal() {
+            totalHarga = keranjang.reduce((sum, item) => sum + item.harga, 0);
+            const cartBar = document.getElementById('cart-bar');
+            if(keranjang.length > 0) {
+                cartBar.classList.remove('hidden');
+                document.getElementById('cart-count').innerText = `${keranjang.length} Item dipilih`;
+                document.getElementById('cart-total').innerText = `Rp ${totalHarga.toLocaleString('id-ID')}`;
+            } else {
+                cartBar.classList.add('hidden');
+            }
+        }
+        
+        function bukaModalPesanan() { document.getElementById('order-modal').classList.remove('hidden'); }
+        function tutupModalPesanan() { document.getElementById('order-modal').classList.add('hidden'); }
+    </script>
+</body>
+</html>

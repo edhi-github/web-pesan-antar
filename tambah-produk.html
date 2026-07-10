@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Penjual - Tambah/Edit Produk</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-800 antialiased font-sans">
+
+    <div class="max-w-md mx-auto min-h-screen bg-white shadow-md flex flex-col justify-between">
+        <!-- HEADER -->
+        <header class="p-4 border-b border-gray-200 flex items-center gap-3">
+            <a href="admin.html" class="text-gray-500 hover:text-gray-700 text-xl font-bold">⬅️</a>
+            <div>
+                <h1 id="title-page" class="text-base font-black text-gray-900">MANAJEMEN MENU</h1>
+                <p id="desc-page" class="text-xs text-gray-500">Tambah item produk/makanan baru</p>
+            </div>
+        </header>
+
+        <!-- FORM INPUT -->
+        <main class="p-4 flex-1">
+            <form id="form-produk" onsubmit="simpanProduk(event)" class="space-y-4">
+                
+                <!-- Nama Produk -->
+                <div>
+                    <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Nama Produk / Menu</label>
+                    <input type="text" id="nama_produk" required placeholder="Contoh: Ayam Penyet Sambal Korek" 
+                        class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-orange-500 focus:outline-none transition">
+                </div>
+
+                <!-- Kategori & Harga -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Kategori</label>
+                        <select id="kategori" class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-orange-500 focus:outline-none transition bg-white">
+                            <option value="Makanan">Makanan</option>
+                            <option value="Minuman">Minuman</option>
+                            <option value="Cemilan">Cemilan</option>
+                            <option value="Paket">Paket Hemat</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Harga (Rp)</label>
+                        <input type="number" id="harga" required placeholder="25000" 
+                            class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-orange-500 focus:outline-none transition">
+                    </div>
+                </div>
+
+                <!-- Deskripsi Menu -->
+                <div>
+                    <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Deskripsi Menu (Opsional)</label>
+                    <textarea id="deskripsi" rows="3" placeholder="Jelaskan detail menu, misal tingkat kepedasan..." 
+                        class="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm focus:border-orange-500 focus:outline-none transition"></textarea>
+                </div>
+
+                <!-- Upload Gambar dengan Live Preview -->
+                <div>
+                    <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Foto Produk</label>
+                    <div class="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center bg-gray-50 hover:bg-gray-100 transition relative">
+                        <input type="file" id="foto_produk" accept="image/*" onchange="previewFoto(event)"
+                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                        
+                        <!-- Tampilan Default Sebelum Upload -->
+                        <div id="tempat-instruksi">
+                            <span class="text-2xl block">📸</span>
+                            <span class="text-xs text-gray-500 font-medium block mt-1">Klik atau seret foto ke sini</span>
+                            <span class="text-[10px] text-gray-400 block">(Format: JPG, PNG, WEBP)</span>
+                        </div>
+
+                        <!-- Kotak Preview Foto -->
+                        <div id="kotak-preview" class="hidden flex flex-col items-center">
+                            <img id="img-preview" src="#" alt="Preview" class="max-h-40 rounded-lg object-cover mb-2 shadow-sm">
+                            <span class="text-xs text-orange-600 font-bold">Ganti Foto</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tombol Submit -->
+                <button type="submit" id="btn-submit" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-black text-sm py-3.5 rounded-xl shadow-md transition mt-6">
+                    🚀 SIMPAN KE MENU WARUNG
+                </button>
+            </form>
+        </main>
+    </div>
+
+    <!-- SCRIPT LOGIK INTERAKSI -->
+    <script>
+        const API_BASE = 'http://172.16.12.187:3000/api/products';
+        
+        // Mengambil parameter ID Produk (untuk mode Edit) dan Shop ID dari URL atau Session
+        const urlParams = new URLSearchParams(window.location.search);
+        const productId = urlParams.get('id');
+        
+        // 🚨 AMBIL SHOP ID (Silakan sesuaikan, di bawah ini mencoba ambil dari parameter URL dulu, kalau tidak ada ambil dari localStorage)
+        const shopId = urlParams.get('shop_id') || localStorage.getItem('shop_id');
+
+        // Pengecekan awal saat halaman dimuat
+        document.addEventListener('DOMContentLoaded', () => {
+            // Validasi proteksi: Jika shopId tidak ditemukan, peringatkan pengguna
+            if (!shopId) {
+                alert('Peringatan: ID Toko (shop_id) tidak ditemukan. Pastikan Anda sudah masuk/login sebagai penjual.');
+            }
+
+            if (productId) {
+                document.getElementById('title-page').innerText = "EDIT MENU";
+                document.getElementById('desc-page').innerText = "Ubah detail item produk/makanan";
+                document.getElementById('btn-submit').innerText = "💾 PERBARUI MENU WARUNG";
+                loadProductData(productId);
+            } else {
+                document.getElementById('foto_produk').required = true;
+            }
+        });
+
+        // FUNGSI LOAD DATA JIKA MODE EDIT
+        function loadProductData(id) {
+            fetch(`${API_BASE}/${id}`)
+                .then(res => {
+                    if(!res.ok) throw new Error('Gagal mengambil data produk');
+                    return res.json();
+                })
+                .then(product => {
+                    document.getElementById('nama_produk').value = product.nama_produk || '';
+                    document.getElementById('kategori').value = product.kategori || 'Makanan';
+                    document.getElementById('harga').value = product.harga || '';
+                    document.getElementById('deskripsi').value = product.deskripsi || '';
+                    
+                    if (product.foto_produk) {
+                        const imgPreview = document.getElementById('img-preview');
+                        const  instruksi = document.getElementById('tempat-instruksi');
+                        const kotakPreview = document.getElementById('kotak-preview');
+                        
+                        imgPreview.src = product.foto_produk;
+                        instruksi.classList.add('hidden');
+                        kotakPreview.classList.remove('hidden');
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Gagal memuat data produk: ' + err.message);
+                });
+        }
+
+        // FUNGSI UNTUK LIVE PREVIEW GAMBAR
+        function previewFoto(event) {
+            const input = event.target;
+            const  instruksi = document.getElementById('tempat-instruksi');
+            const kotakPreview = document.getElementById('kotak-preview');
+            const imgPreview = document.getElementById('img-preview');
+
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imgPreview.src = e.target.result;
+                    instruksi.classList.add('hidden');
+                    kotakPreview.classList.remove('hidden');
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        // FUNGSI KIRIM DATA MENGGUNAKAN FORMDATA
+        function simpanProduk(event) {
+            event.preventDefault();
+
+            if (!shopId) {
+                alert('Gagal menyimpan: ID Toko (shop_id) kosong/tidak valid.');
+                return;
+            }
+
+            const btnSubmit = document.getElementById('btn-submit');
+            const originalText = btnSubmit.innerText;
+            btnSubmit.innerText = "⏳ Sedang Menyimpan...";
+            btnSubmit.disabled = true;
+
+            const formData = new FormData();
+            // 🚨 PENAMBAHAN FIELD SHOP ID DI SINI
+            formData.append('shop_id', shopId); 
+            
+            formData.append('nama_produk', document.getElementById('nama_produk').value);
+            formData.append('kategori', document.getElementById('kategori').value);
+            formData.append('harga', document.getElementById('harga').value);
+            formData.append('deskripsi', document.getElementById('deskripsi').value);
+            
+            const fileFoto = document.getElementById('foto_produk').files[0];
+            if (fileFoto) {
+                formData.append('foto_produk', fileFoto);
+            }
+
+            const url = productId ? `${API_BASE}/${productId}` : API_BASE;
+            const method = productId ? 'PUT' : 'POST';
+
+            fetch(url, {
+                method: method,
+                body: formData
+            })
+            .then(res => {
+                if(!res.ok) {
+                    return res.json().then(err => { throw new Error(err.message || 'Gagal menyimpan data') });
+                }
+                return res.json();
+            })
+            .then(data => {
+                alert('Sukses! Data menu berhasil disimpan.');
+                if (!productId) {
+                    document.getElementById('form-produk').reset();
+                    document.getElementById('kotak-preview').classList.add('hidden');
+                    document.getElementById('tempat-instruksi').classList.remove('hidden');
+                } else {
+                    window.location.href = 'admin.html';
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Terjadi kesalahan: ' + err.message);
+            })
+            .finally(() => {
+                btnSubmit.innerText = originalText;
+                btnSubmit.disabled = false;
+            });
+        }
+    </script>
+</body>
+</html>

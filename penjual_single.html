@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dapur Utama - Rekap Pesanan Masuk</title>
+    <!-- Menggunakan Tailwind CSS untuk layouting cepat -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-800 antialiased font-sans">
+
+    <!-- 1. FIXED HEADER -->
+    <header class="bg-white shadow-md sticky top-0 z-10 border-b border-gray-200">
+        <div class="max-w-md mx-auto px-4 pt-3 pb-2 flex justify-between items-center">
+            <div>
+                <h1 class="text-lg font-black text-gray-900 tracking-tight">DAPUR WARUNG BU KRIS</h1>
+                <p class="text-xs text-green-600 font-medium flex items-center gap-1">
+                    <span class="w-2 h-2 bg-green-500 rounded-full"></span> Monitor Pesanan Aktif
+                </p>
+            </div>
+            <!-- Ringkasan Orderan Aktif Hari Ini -->
+            <div class="bg-orange-100 text-orange-800 px-3 py-1.5 rounded-lg text-center">
+                <span id="total-antrean" class="block text-sm font-bold">0</span>
+                <span class="text-[10px] uppercase font-bold tracking-wider">Antrean</span>
+            </div>
+        </div>
+
+        <!-- TOMBOL NAVIGASI MENUJU ADMIN.HTML (TAMBAHAN SINKRONISASI) -->
+        <div class="max-w-md mx-auto px-4 pb-3">
+            <a href="admin.html" class="block w-full text-center bg-gray-800 hover:bg-gray-900 text-white text-xs font-bold py-2 px-4 rounded-xl shadow-sm transition active:scale-[0.98]">
+                📦 Kelola Stok Menu (Tersedia / Habis)
+            </a>
+        </div>
+      
+        <!-- NAVIGASI TAB UTAMA -->
+        <div class="max-w-md mx-auto px-4 flex border-t border-gray-100">
+            <button onclick="gantiTab('antrean')" id="tab-aktif" class="w-1/2 text-center py-3 text-sm font-bold border-b-4 border-orange-500 text-orange-600 bg-orange-50/50 rounded-tl-xl">
+                Pesanan Aktif (Baru/Proses)
+            </button>
+            <button onclick="gantiTab('riwayat')" id="tab-selesai" class="w-1/2 text-center py-3 text-sm font-medium border-b-4 border-transparent text-gray-400 hover:text-gray-600 transition rounded-tr-xl">
+                Riwayat Selesai
+            </button>
+        </div>
+    </header>
+
+    <!-- 2. DAFTAR KARTU ANTREAN PESANAN -->
+    <main class="max-w-md mx-auto p-4 pb-20">
+        
+        <!-- CONTAINER UNTUK PESANAN AKTIF -->
+        <div id="container-pesanan-aktif" class="space-y-4">
+            <div class="text-center py-10 text-gray-400 text-sm">Menghubungkan ke server dapur...</div>
+        </div>
+
+        <!-- CONTAINER UNTUK RIWAYAT PESANAN SELESAI (Sifatnya Hidden di Awal) -->
+        <div id="container-pesanan-selesai" class="space-y-4 hidden">
+            <div class="text-center py-10 text-gray-400 text-sm">
+                Belum ada pesanan yang diselesaikan hari ini.
+            </div>
+        </div>
+
+    </main>
+
+    <!-- INTERAKSI JAVASCRIPT LOKAL -->
+    <script>
+        // Jalankan fungsi ambil data otomatis saat halaman pertama kali dibuka
+        ambilPesananDariDatabase();
+
+        // Fitur Real-time Sederhana: Tarik data dari server setiap 10 detik sekali otomatis
+        setInterval(ambilPesananDariDatabase, 10000);
+
+        function ambilPesananDariDatabase() {
+            fetch('http://172.16.12.187:3000/api/orders/active')
+            .then(res => res.json())
+            .then(data => {
+                const container = document.getElementById('container-pesanan-aktif');
+                document.getElementById('total-antrean').innerText = data.length;
+                
+                if (data.length === 0) {
+                    container.innerHTML = '<div class="text-center py-10 text-gray-400 text-sm">Belum ada antrean pesanan baru saat ini.</div>';
+                    return;
+                }
+
+                container.innerHTML = ''; // Bersihkan antrean lama sebelum menggambar data baru
+                
+                data.forEach(order => {
+                    let htmlItems = '';
+                    order.items.forEach(item => {
+                        htmlItems += `
+                            <div class="border-b border-gray-100 last:border-0 py-1">
+                                <span class="font-bold text-gray-900">${item.kuantitas}x</span> ${item.nama}
+                                ${item.catatan ? `<span class="block text-xs text-red-600 font-medium bg-red-50 px-2 py-0.5 rounded mt-0.5 w-max">📝 Catatan: ${item.catatan}</span>` : ''}
+                            </div>
+                        `;
+                    });
+
+                    const menitLalu = Math.floor((new Date() - new Date(order.created_at)) / 60000);
+                    const teksWaktu = menitLalu < 1 ? 'Baru saja' : `${menitLalu} mnt lalu`;
+
+                    const kartuHtml = `
+                        <div id="order-card-${order.id}" class="bg-yellow-50/70 rounded-2xl p-4 shadow-sm border-2 border-yellow-200 flex flex-col justify-between transition-all">
+                            <div>
+                                <div class="flex justify-between items-center border-b border-yellow-100 pb-2 mb-2">
+                                    <span class="bg-yellow-400 text-yellow-950 text-xs font-black px-2.5 py-0.5 rounded-md">#ORD-${order.id}</span>
+                                    <span class="text-xs font-semibold text-gray-500">🕒 ${teksWaktu}</span>
+                                </div>
+                                <div class="text-sm font-bold text-gray-900 mb-2">
+                                    ${order.customer_name}
+                                    <div class="text-xs text-orange-700 bg-orange-50 inline-block px-2 py-0.5 rounded mt-1 font-medium border border-orange-100">
+                                        📍 Lokasi: ${order.table_or_address}
+                                    </div>
+                                </div>
+                                <div class="bg-white rounded-xl p-3 border border-yellow-100 text-sm space-y-1">
+                                    ${htmlItems}
+                                </div>
+                            </div>
+                            <div class="mt-4 pt-3 border-t border-yellow-100 flex items-center justify-between">
+                                <div>
+                                    <span class="text-[10px] text-gray-400 block uppercase font-bold">Total Tagihan</span>
+                                    <span class="text-base font-black text-gray-900">Rp ${order.total_price.toLocaleString('id-ID')}</span>
+                                </div>
+                                <button onclick="selesaikanPesanan('${order.id}')" class="bg-green-600 hover:bg-green-700 text-white font-bold text-sm px-6 py-3 rounded-xl shadow-md transition">
+                                    ✓ Selesai Diantar
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    container.insertAdjacentHTML('beforeend', kartuHtml);
+                });
+            })
+            .catch(err => console.error('Gagal memuat antrean:', err));
+        }
+
+        function selesaikanPesanan(idOrder) {
+            if (confirm(`Yakin pesanan #ORD-${idOrder} sudah selesai?`)) {
+                fetch(`http://172.16.12.187:3000/api/orders/${idOrder}/complete`, {
+                    method: 'PATCH'
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        ambilPesananDariDatabase();
+                    }
+                })
+                .catch(err => alert('Gagal memproses tombol selesai ke database.'));
+            }
+        }
+
+        function gantiTab(tab) {
+            const tabAntrean = document.getElementById('tab-aktif');
+            const tabRiwayat = document.getElementById('tab-selesai');
+            const kontenAntrean = document.getElementById('container-pesanan-aktif');
+            const kontenRiwayat = document.getElementById('container-pesanan-selesai');
+
+            if (tab === 'antrean') {
+                tabAntrean.className = "w-1/2 text-center py-3 text-sm font-bold border-b-4 border-orange-500 text-orange-600 bg-orange-50/50 rounded-tl-xl";
+                tabRiwayat.className = "w-1/2 text-center py-3 text-sm font-medium border-b-4 border-transparent text-gray-400 hover:text-gray-600 transition rounded-tr-xl";
+                kontenAntrean.classList.remove('hidden');
+                kontenRiwayat.classList.add('hidden');
+                ambilPesananDariDatabase();
+            } else {
+                tabRiwayat.className = "w-1/2 text-center py-3 text-sm font-bold border-b-4 border-orange-500 text-orange-600 bg-orange-50/50 rounded-tr-xl";
+                tabAntrean.className = "w-1/2 text-center py-3 text-sm font-medium border-b-4 border-transparent text-gray-400 hover:text-gray-600 transition rounded-tl-xl";
+                kontenAntrean.classList.add('hidden');
+                kontenRiwayat.classList.remove('hidden');
+                ambilRiwayatDariDatabase();
+            }
+        }
+
+        function ambilRiwayatDariDatabase() {
+            fetch('http://172.16.12.187:3000/api/orders/history')
+            .then(res => res.json())
+            .then(data => {
+                const containerRiwayat = document.getElementById('container-pesanan-selesai');
+                
+                if (data.length === 0) {
+                    containerRiwayat.innerHTML = '<div class="text-center py-10 text-gray-400 text-sm">Belum ada riwayat pesanan yang selesai harian ini.</div>';
+                    return;
+                }
+
+                containerRiwayat.innerHTML = ''; 
+                
+                data.forEach(order => {
+                    let htmlItems = '';
+                    order.items.forEach(item => {
+                        htmlItems += `<li>${item.kuantitas}x ${item.nama}</li>`;
+                    });
+
+                    const waktuSelesai = new Date(order.created_at).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
+
+                    const barisRiwayatHtml = `
+                        <div class="bg-white border border-gray-100 rounded-xl p-4 flex justify-between items-center shadow-sm">
+                            <div>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-xs font-black text-gray-400">#ORD-${order.id}</span>
+                                    <span class="font-bold text-gray-900 text-sm">${order.customer_name}</span>
+                                    <span class="text-[10px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded">📍 ${order.table_or_address}</span>
+                                </div>
+                                <ul class="text-xs text-gray-500 list-disc list-inside space-y-0.5">
+                                    ${htmlItems}
+                                </ul>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-xs font-bold text-gray-400 block"> Jam ${waktuSelesai}</span>
+                                <span class="text-sm font-black text-green-600">Rp ${order.total_price.toLocaleString('id-ID')}</span>
+                            </div>
+                        </div>
+                    `;
+                    containerRiwayat.insertAdjacentHTML('beforeend', barisRiwayatHtml);
+                });
+            })
+            .catch(err => console.error('Gagal memuat riwayat:', err));
+        }
+    </script>
+</body>
+</html>

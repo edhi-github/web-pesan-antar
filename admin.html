@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Dapur - Kelola Stok Menu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-800 antialiased font-sans">
+
+    <!-- HEADER PANEL -->
+    <header class="bg-white shadow-sm sticky top-0 z-10 border-b border-orange-100">
+        <div class="max-w-md mx-auto px-4 py-4">
+            <div class="flex justify-between items-center mb-3">
+                <a href="penjual.html" id="btn-kembali" class="text-gray-500 hover:text-gray-700 text-xl font-bold">⬅️</a>    
+                <div>
+                    <h1 class="text-xl font-bold text-gray-900">Panel Dapur & Stok</h1>
+                    <p id="admin-nama-warung" class="text-xs text-gray-500">Memuat info warung...</p>
+                </div>
+                <button onclick="muatProdukAdmin()" class="bg-gray-100 hover:bg-gray-200 p-2 rounded-lg text-xs font-semibold transition">
+                    🔄 Refresh
+                </button>
+            </div>
+            
+            <!-- TOMBOL TAMBAH PRODUK (OTOMATIS OPER PARAMETER SHOP) -->
+            <a id="btn-tambah-produk" href="tambah-produk.html" class="block w-full text-center bg-orange-600 hover:bg-orange-700 text-white text-sm font-bold py-2.5 px-4 rounded-xl shadow-sm transition active:scale-[0.98]">
+                ➕ Tambah Produk Baru
+            </a>
+        </div>
+    </header>
+
+    <!-- UTAMA -->
+    <main class="max-w-md mx-auto px-4 pt-4 pb-12">
+        <div id="container-pesan-error" class="hidden bg-red-50 border border-red-200 p-4 rounded-xl text-red-700 text-sm font-medium text-center mb-4">
+            Akses dibatasi. Parameter ?shop= tidak ditemukan pada URL.
+        </div>
+
+        <div id="konten-admin">
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-6 text-xs text-blue-800">
+                💡 <strong>Info Dapur:</strong> Klik sakelar/tombol di samping menu untuk mengubah status penjualan secara instan.
+            </div>
+
+            <h2 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Daftar Menu Saat Ini</h2>
+            
+            <!-- Wadah List Produk untuk Admin -->
+            <div id="admin-menu-list" class="space-y-3">
+                <div class="text-center py-10 text-gray-400 text-sm animate-pulse">
+                    Mengambil data menu dapur...
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Sesuaikan dengan IP Server Backend Anda
+        const API_URL = 'http://172.16.12.187:3000';
+        
+        // Tangkap parameter ?shop= dari URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentShopSlug = urlParams.get('shop');
+
+        document.addEventListener("DOMContentLoaded", () => {
+            if (!currentShopSlug) {
+                document.getElementById('konten-admin').classList.add('hidden');
+                document.getElementById('container-pesan-error').classList.remove('hidden');
+                document.getElementById('btn-tambah-produk').classList.add('hidden');
+                return;
+            }
+
+            // Atur nama warung dinamis di sub-header berdasarkan slug
+            const namaWarungCantik = currentShopSlug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+            document.getElementById('admin-nama-warung').innerText = `${namaWarungCantik} — Kontrol Menu Real-time`;
+
+            // Sesuaikan link navigasi agar parameter ?shop= tidak hilang saat berpindah halaman
+            document.getElementById('btn-kembali').href = `penjual.html?shop=${currentShopSlug}`;
+            document.getElementById('btn-tambah-produk').href = `tambah-produk.html?shop=${currentShopSlug}`;
+
+            muatProdukAdmin();
+        });
+
+        // 1. FUNGSI MEMBACA PRODUK BERDASARKAN TENANT/SHOP
+        function muatProdukAdmin() {
+            const containerAdmin = document.getElementById('admin-menu-list');
+
+            // Menyertakan query parameter ?shop= agar backend memfilter produk warung terkait saja
+            fetch(`${API_URL}/api/products?shop=${currentShopSlug}`)
+                .then(res => res.json())
+                .then(response => {
+                    if (!response.success || !response.data || response.data.length === 0) {
+                        containerAdmin.innerHTML = '<div class="text-center py-10 text-gray-400 text-sm">Belum ada produk terdaftar untuk warung ini.</div>';
+                        return;
+                    }
+
+                    containerAdmin.innerHTML = '';
+
+                    response.data.forEach(produk => {
+                        const dbId = produk.id;
+                        const dbNama = produk.name || produk.nama;
+                        const dbHarga = produk.price || produk.harga;
+                        const dbKategori = produk.category || produk.kategori || 'Menu';
+                        const dbFoto = produk.image_url || produk.foto;
+                        
+                        const tersedia = (produk.is_available !== 0 && produk.is_available !== '0' && produk.is_available !== false);
+                        const ruteFoto = dbFoto ? `${API_URL}${dbFoto}` : 'https://via.placeholder.com/150';
+
+                        let tombolAksiHtml = '';
+                        if (tersedia) {
+                            tombolAksiHtml = `
+                                <button onclick="ubahStatusStok('${dbId}', 0)" 
+                                        class="bg-green-100 hover:bg-green-200 text-green-700 text-xs font-bold px-3 py-2 rounded-lg transition whitespace-nowrap flex items-center gap-1">
+                                    <span class="w-2 h-2 bg-green-500 rounded-full"></span> Jual (Tersedia)
+                                </button>
+                            `;
+                        } else {
+                            tombolAksiHtml = `
+                                <button onclick="ubahStatusStok('${dbId}', 1)" 
+                                        class="bg-red-100 hover:bg-red-200 text-red-700 text-xs font-bold px-3 py-2 rounded-lg transition whitespace-nowrap flex items-center gap-1">
+                                    <span class="w-2 h-2 bg-red-500 rounded-full animate-ping"></span> Kosong (Habis)
+                                </button>
+                            `;
+                        }
+
+                        const barisMenuHtml = `
+                            <div class="bg-white rounded-xl p-3 shadow-sm border border-gray-100 flex items-center justify-between gap-3 ${!tersedia ? 'bg-gray-50 border-dashed' : ''}">
+                                <div class="flex items-center gap-3">
+                                    <img src="${ruteFoto}" alt="${dbNama}" class="w-12 h-12 object-cover rounded-lg bg-gray-100 ${!tersedia ? 'grayscale opacity-50' : ''}">
+                                    <div>
+                                        <h3 class="font-semibold text-sm ${tersedia ? 'text-gray-900' : 'text-gray-400 line-through'}">${dbNama}</h3>
+                                        <p class="text-xs text-gray-500">Rp ${Number(dbHarga).toLocaleString('id-ID')} · <span class="text-orange-600 font-medium">${dbKategori}</span></p>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    ${tombolAksiHtml}
+                                </div>
+                            </div>
+                        `;
+                        containerAdmin.insertAdjacentHTML('beforeend', barisMenuHtml);
+                    });
+                })
+                .catch(err => {
+                    console.error('Gagal memuat panel admin:', err);
+                    containerAdmin.innerHTML = '<div class="text-center py-10 text-red-500 text-sm">Gagal terhubung ke server.</div>';
+                });
+        }
+
+        // 2. FUNGSI TEMBAK PERUBAHAN STATUS KE BACKEND (MENYERTAKAN BODY / QUERY SHOP JIKA BACKEND MEMBUTUHKANNYA)
+        function ubahStatusStok(productId, statusBaru) {
+            fetch(`${API_URL}/api/products/${productId}/toggle-available`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ 
+                    is_available: statusBaru,
+                    shop: currentShopSlug // Mengirim info shop sebagai validasi kepemilikan di backend jika diperlukan
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    muatProdukAdmin();
+                } else {
+                    alert('Gagal mengubah status: ' + data.message);
+                }
+            })
+            .catch(err => {
+                console.error('Error saat update status:', err);
+                alert('Gagal tersambung ke server untuk mengubah stok.');
+            });
+        }
+    </script>
+</body>
+</html>
