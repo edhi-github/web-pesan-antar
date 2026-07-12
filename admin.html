@@ -96,9 +96,22 @@
                         const dbHarga = produk.price || produk.harga;
                         const dbKategori = produk.category || produk.kategori || 'Menu';
                         const dbFoto = produk.image_url || produk.foto;
+
+                        // Default placeholder jika tidak ada foto
+                        let ruteFoto = 'https://via.placeholder.com/150'; 
+
+                        if (dbFoto) {
+                            // Jika foto sudah berupa link utuh Cloudflare (http/https), langsung pakai.
+                            // Jika masih berupa path lokal (/uploads/...), baru gabungkan dengan API_URL.
+                            if (dbFoto.startsWith('http://') || dbFoto.startsWith('https://')) {
+                                ruteFoto = dbFoto;
+                            } else {
+                                ruteFoto = `${API_URL}${dbFoto}`;
+                            }
+                        }
                         
                         const tersedia = (produk.is_available !== 0 && produk.is_available !== '0' && produk.is_available !== false);
-                        const ruteFoto = dbFoto ? `${API_URL}${dbFoto}` : 'https://via.placeholder.com/150';
+                        //const ruteFoto = dbFoto ? `${API_URL}${dbFoto}` : 'https://via.placeholder.com/150';
 
                         let tombolAksiHtml = '';
                         if (tersedia) {
