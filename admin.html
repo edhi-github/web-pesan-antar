@@ -99,12 +99,8 @@
 
                         
                         const tersedia = (produk.is_available !== 0 && produk.is_available !== '0' && produk.is_available !== false);
-                        //const ruteFoto = dbFoto ? `${API_URL}${dbFoto}` : 'https://via.placeholder.com/150';
-                        // SEBELUMNYA: const urlFoto = `${process.env.R2_PUBLIC_URL}/${uniqueFilename}`;
-
-                        // SEKARANG: Diarahkan ke rute backend Railway Anda sendiri
-                        const urlFoto = `/api/images/${uniqueFilename}`;    
-
+                        const ruteFoto = dbFoto ? `${API_URL}${dbFoto}` : 'https://via.placeholder.com/150';
+                        
                         let tombolAksiHtml = '';
                         if (tersedia) {
                             tombolAksiHtml = `
