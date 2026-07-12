@@ -97,9 +97,28 @@
                         const dbKategori = produk.category || produk.kategori || 'Menu';
                         const dbFoto = produk.image_url || produk.foto;
 
-                        
+                        // Default placeholder jika tidak ada foto
+                        let ruteFoto = 'https://via.placeholder.com/150'; 
+
+                        if (dbFoto) {
+                            if (dbFoto.startsWith('http://') || dbFoto.startsWith('https://')) {
+                                // JIKA LINKNYA DARI CLOUDFLARE R2 YANG PRIVACY ERROR:
+                                if (dbFoto.includes('r2.dev')) {
+                                    // Kita bypass error HTTPS-nya menggunakan proxy gambar gratis (wsrv.nl atau images.weserv.nl)
+                                    // Proxy ini aman, cepat, gratis, dan otomatis memberikan sertifikat HTTPS yang valid!
+                                    ruteFoto = `https://wsrv.nl/?url=${encodeURIComponent(dbFoto)}`;
+                                } else {
+                                    // Jika link luar lain yang normal
+                                    ruteFoto = dbFoto;
+                                }
+                            } else {
+                                // Jika masih berupa path lokal backend (/uploads/...)
+                                ruteFoto = `${API_URL}${dbFoto}`;
+                            }
+                        }
+
                         const tersedia = (produk.is_available !== 0 && produk.is_available !== '0' && produk.is_available !== false);
-                        const ruteFoto = dbFoto ? `${API_URL}${dbFoto}` : 'https://via.placeholder.com/150';
+                        //const ruteFoto = dbFoto ? `${API_URL}${dbFoto}` : 'https://via.placeholder.com/150';
                         
                         let tombolAksiHtml = '';
                         if (tersedia) {
