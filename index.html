@@ -457,7 +457,7 @@
 
                 keranjang.forEach(itemBaru => {
                     // Cari kecocokan data produk lokal di keranjang dengan data teranyar dari database server
-                    const produkTerbaru Server = daftarProdukServer.find(p => String(p.id) === String(itemBaru.product_id));
+                    const produkTerbaruServer = daftarProdukServer.find(p => String(p.id) === String(itemBaru.product_id));
                     
                     if (produkTerbaruServer) {
                         const masihTersedia = produkTerbaruServer.is_available !== 0 && 
