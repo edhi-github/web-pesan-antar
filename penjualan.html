@@ -126,32 +126,48 @@
                         `;
                     });
 
-                    const menitLalu = Math.floor((new Date() - new Date(order.created_at)) / 60000);
-                    const teksWaktu = menitLalu < 1 ? 'Baru saja' : `${menitLalu} mnt lalu`;
+                    // --- LOGIKA RUTE LENGKAP BUKTI BAYAR (DISAMAKAN) ---
+                    const dbBukti = order.payment_proof_url;
+                    let ruteLengkapBukti = ''; 
 
-                    // Logika pengecekan bukti bayar
+                    if (dbBukti) {
+                        if (dbBukti.startsWith('http://') || dbBukti.startsWith('https://')) {
+                            if (dbBukti.includes('r2.dev')) {
+                                ruteLengkapBukti = `https://wsrv.nl/?url=${encodeURIComponent(dbBukti)}`;
+                            } else {
+                                ruteLengkapBukti = dbBukti;
+                            }
+                        } else {
+                            ruteLengkapBukti = `${API_URL}${dbBukti}`;
+                        }
+                    }
+
+                    // Logika tampilan elemen HTML bukti bayar
                     let htmlBuktiBayar = `
                         <div class="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg p-2 text-center font-medium">
                             ⚠️ Belum ada bukti bayar
                         </div>
                     `;
 
-                    if (order.payment_proof_url) {
+                    if (ruteLengkapBukti) {
                         htmlBuktiBayar = `
-                            <div class="bg-gray-50 border border-gray-200 rounded-xl p-2 flex items-center justify-between">
+                            <div class="bg-gray-50 border border-gray-200 rounded-xl p-2 flex items-center justify-between mt-2">
                                 <div class="flex items-center gap-2">
-                                    <img src="${order.payment_proof_url}" class="w-10 h-10 object-cover rounded-md border border-gray-300 cursor-pointer hover:opacity-80 transition" onclick="bukaModalBukti('${order.payment_proof_url}')">
+                                    <img src="${ruteLengkapBukti}" class="w-10 h-10 object-cover rounded-md border border-gray-300 cursor-pointer hover:opacity-80 transition" onclick="bukaModalBukti('${ruteLengkapBukti}')">
                                     <div>
                                         <span class="text-[11px] font-bold text-gray-700 block leading-tight">Bukti Pembayaran</span>
                                         <span class="text-[9px] text-green-600 bg-green-50 px-1 py-0.2 rounded font-semibold">Sudah Upload</span>
                                     </div>
                                 </div>
-                                <button type="button" onclick="bukaModalBukti('${order.payment_proof_url}')" class="text-[11px] text-blue-600 hover:text-blue-800 font-bold bg-white border border-gray-300 px-2.5 py-1 rounded-lg shadow-sm transition">
+                                <button type="button" onclick="bukaModalBukti('${ruteLengkapBukti}')" class="text-[11px] text-blue-600 hover:text-blue-800 font-bold bg-white border border-gray-300 px-2.5 py-1 rounded-lg shadow-sm transition">
                                     🔍 Lihat
                                 </button>
                             </div>
                         `;
                     }
+
+                    const menitLalu = Math.floor((new Date() - new Date(order.created_at)) / 60000);
+                    const teksWaktu = menitLalu < 1 ? 'Baru saja' : `${menitLalu} mnt lalu`;
 
                     const kartuHtml = `
                         <div id="order-card-${order.id}" class="bg-yellow-50/70 rounded-2xl p-4 shadow-sm border-2 border-yellow-200 flex flex-col justify-between transition-all">
@@ -166,11 +182,11 @@
                                         📍 Lokasi: ${order.table_or_address}
                                     </div>
                                 </div>
-                                <div class="bg-white rounded-xl p-3 border border-yellow-100 text-sm space-y-1 mb-2">
+                                <div class="bg-white rounded-xl p-3 border border-yellow-100 text-sm space-y-1">
                                     ${htmlItems}
                                 </div>
                                 
-                                <!-- ELEMENT BUKTI BAYAR DI SINI -->
+                                <!-- Sisipkan Tampilan Bukti Bayar -->
                                 ${htmlBuktiBayar}
                             </div>
                             <div class="mt-4 pt-3 border-t border-yellow-100 flex items-center justify-between">
@@ -229,7 +245,6 @@
         function ambilRiwayatDariDatabase() {
             if (!currentShopSlug) return;
 
-            // Mengirim query string ?shop= ke backend untuk penyaringan riwayat
             fetch(`${API_URL}/api/orders/history?shop=${currentShopSlug}`)
             .then(res => res.json())
             .then(data => {
@@ -255,11 +270,26 @@
 
                     const waktuSelesai = new Date(order.created_at).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
 
-                    // Cek bukti bayar untuk riwayat
+                    // --- LOGIKA RUTE LENGKAP BUKTI BAYAR UNTUK RIWAYAT ---
+                    const dbBukti = order.payment_proof_url;
+                    let ruteLengkapBukti = ''; 
+
+                    if (dbBukti) {
+                        if (dbBukti.startsWith('http://') || dbBukti.startsWith('https://')) {
+                            if (dbBukti.includes('r2.dev')) {
+                                ruteLengkapBukti = `https://wsrv.nl/?url=${encodeURIComponent(dbBukti)}`;
+                            } else {
+                                ruteLengkapBukti = dbBukti;
+                            }
+                        } else {
+                            ruteLengkapBukti = `${API_URL}${dbBukti}`;
+                        }
+                    }
+
                     let tombolBuktiRiwayat = '';
-                    if (order.payment_proof_url) {
+                    if (ruteLengkapBukti) {
                         tombolBuktiRiwayat = `
-                            <button onclick="bukaModalBukti('${order.payment_proof_url}')" class="mt-2 block w-full text-center text-[10px] bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-1 rounded-md border transition">
+                            <button onclick="bukaModalBukti('${ruteLengkapBukti}')" class="mt-2 block w-full text-center text-[10px] bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-1 rounded-md border transition">
                                 📄 Lihat Bukti Bayar
                             </button>
                         `;
@@ -278,7 +308,7 @@
                                 </ul>
                                 ${tombolBuktiRiwayat}
                             </div>
-                            <div class="text-right flex flex-col justify-between h-full min-w-[80px]">
+                            <div class="text-right flex flex-col justify-between min-w-[80px]">
                                 <span class="text-xs font-bold text-gray-400 block"> Jam ${waktuSelesai}</span>
                                 <span class="text-sm font-black text-green-600">Rp ${order.total_price.toLocaleString('id-ID')}</span>
                             </div>
