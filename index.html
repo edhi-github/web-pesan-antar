@@ -412,7 +412,8 @@
         function kirimPesananKeSistem(event) {
             event.preventDefault();
 
-            if(!isShopOpen) {
+            // 1. Cek validasi lokal terlebih dahulu
+            if (!isShopOpen) {
                 alert("Gagal memproses. Warung sedang tutup!");
                 return;
             }
@@ -425,36 +426,63 @@
                 return;
             }
 
+            // Ubah status tombol sementara untuk mencegah double click
             btnSubmit.disabled = true;
-            btnSubmit.innerText = "⏳ Sedang Mengirim Pesanan...";
+            btnSubmit.innerText = "⏳ Memeriksa Status Warung...";
 
-            const nama = document.getElementById('cust-name').value;
-            const phone = document.getElementById('cust-phone').value;
-            const table = document.getElementById('cust-table').value;
-            
-            const itemsValid = keranjang.map(item => ({
-                product_id: item.product_id,
-                harga: item.harga,
-                catatan: item.catatan || ''
-            }));
-
-            const formData = new FormData();
-            formData.append('shop', currentShopSlug);
-            formData.append('customer_name', nama);
-            formData.append('customer_phone', phone);
-            formData.append('table_or_address', table);
-            formData.append('total_price', totalHarga);
-            formData.append('items', JSON.stringify(itemsValid));
-            formData.append('payment_proof', fileInput.files[0]);
-
-            fetch(`${API_URL}/api/orders`, {
-                method: 'POST',
-                body: formData
-            })
+            // 2. VALIDASI REAL-TIME: Cek status warung langsung ke server sebelum submit data
+            fetch(`${API_URL}/api/shops/status?shop=${currentShopSlug}`)
             .then(res => res.json())
+            .then(shopResponse => {
+                const isLatestOpen = Number(shopResponse.is_open) === 1;
+
+                // Jika ternyata warung sudah ditutup oleh penjual
+                if (!shopResponse.success || !isLatestOpen) {
+                    alert("🔒 Mohon maaf, warung baru saja TUTUP beberapa saat lalu. Pesanan Anda tidak dapat diproses.");
+                    
+                    // Sinkronisasi UI pembeli menjadi tutup
+                    updateStatusTokoUI(0); 
+                    tutupModalPesanan();
+                    return; // Hentikan eksekusi kirim pesanan
+                }
+
+                // 3. JIKA WARUNG BENAR-BENAR BUKA, LANJUTKAN PROSES PENGIRIMAN PESANAN
+                btnSubmit.innerText = "⏳ Sedang Mengirim Pesanan...";
+
+                const nama = document.getElementById('cust-name').value;
+                const phone = document.getElementById('cust-phone').value;
+                const table = document.getElementById('cust-table').value;
+                
+                const itemsValid = keranjang.map(item => ({
+                    product_id: item.product_id,
+                    harga: item.harga,
+                    catatan: item.catatan || ''
+                }));
+
+                const formData = new FormData();
+                formData.append('shop', currentShopSlug);
+                formData.append('customer_name', nama);
+                formData.append('customer_phone', phone);
+                formData.append('table_or_address', table);
+                formData.append('total_price', totalHarga);
+                formData.append('items', JSON.stringify(itemsValid));
+                formData.append('payment_proof', fileInput.files[0]);
+
+                return fetch(`${API_URL}/api/orders`, {
+                    method: 'POST',
+                    body: formData
+                });
+            })
+            .then(res => {
+                // Jika proses sebelumnya di-return (karena warung tutup), res akan bernilai undefined
+                if (!res) return; 
+                return res.json();
+            })
             .then(data => {
+                if (!data) return; // Jika tidak ada data dari catch warung tutup
+
                 if (data.success) {
-                    alert(`Terima kasih ${nama}! Pesanan & Bukti Pembayaran Berhasil Dikirim (ID: #ORD-${data.order_id})`);
+                    alert(`Terima kasih! Pesanan & Bukti Pembayaran Berhasil Dikirim (ID: #ORD-${data.order_id})`);
                     keranjang = [];
                     hitungTotal();
                     tutupModalPesanan();
