@@ -226,13 +226,12 @@
             fetch(`${API_URL}/api/products?shop=${currentShopSlug}`)
                 .then(res => res.json())
                 .then(response => {
-                    // Penyesuaian: Mengecek properti status toko dari backend jika ada (misal response.shop_status atau response.is_open)
-                    // Contoh implementasi di bawah membaca status toko langsung dari properti root response API Anda.
+                    
+                    // Membaca status toko dari root response yang telah kita perbaiki di backend
                     if (response.hasOwnProperty('is_open')) {
                         updateStatusTokoUI(response.is_open);
                     } else if (response.data && response.data.length > 0 && response.data[0].hasOwnProperty('shop_status')) {
-                        // Atau jika status disisipkan di dalam objek produk
-                        updateStatusTokoUI(response.data[0].shop_status === 'buka' || response.data[0].shop_status === true);
+                        updateStatusTokoUI(Number(response.data[0].shop_status) === 1);
                     }
 
                     if (!response.success || !response.data || response.data.length === 0) {

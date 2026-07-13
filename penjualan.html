@@ -298,12 +298,14 @@
         function cekStatusWarung() {
             if (!currentShopSlug) return;
 
-            // Endpoint untuk mengambil data detail toko/warung berdasarkan slug
-            fetch(`${API_URL}/api/shops/${currentShopSlug}`)
+            // PERBAIKAN: Mengarah ke endpoint /api/shops/status sesuai server.js
+            fetch(`${API_URL}/api/shops/status?shop=${currentShopSlug}`)
             .then(res => res.json())
-            .then(shop => {
-                statusWarungSekarang = shop.is_open;
-                perbaruiTampilanTombolStatus(statusWarungSekarang);
+            .then(response => {
+                if (response.success) {
+                    statusWarungSekarang = Number(response.is_open);
+                    perbaruiTampilanTombolStatus(statusWarungSekarang);
+                }
             })
             .catch(err => console.error('Gagal mengambil status warung:', err));
         }
@@ -312,32 +314,34 @@
             const btn = document.getElementById('btn-status-warung');
 
             if (isOpen == 1) {
-                // Tampilan saat BUKA: Hijau mini
                 btn.className = "text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-green-50 border border-green-300 text-green-700 hover:bg-green-100 transition-all shadow-sm";
                 btn.innerText = "🟢 Warung Buka";
             } else {
-                // Tampilan saat TUTUP: Merah mini
                 btn.className = "text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-red-50 border border-red-300 text-red-700 hover:bg-red-100 transition-all shadow-sm";
                 btn.innerText = "🔴 Warung Tutup";
             }
         }
 
         function toggleStatusWarung() {
-            // Balik nilainya: jika 1 jadi 0, jika 0 jadi 1
             const statusBaru = statusWarungSekarang == 1 ? 0 : 1;
             const pesanAksi = statusBaru == 1 ? "membuka" : "menutup";
 
             if (confirm(`Apakah Anda yakin ingin ${pesanAksi} warung?`)) {
-                fetch(`${API_URL}/api/shops/${currentShopSlug}/toggle-status`, {
-                    method: 'PATCH',
+                // PERBAIKAN: Menggunakan method PUT dan struktur URL /api/shops/toggle-status sesuai backend
+                fetch(`${API_URL}/api/shops/toggle-status`, {
+                    method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ is_open: statusBaru })
+                    body: JSON.stringify({ 
+                        shop: currentShopSlug, 
+                        is_open: statusBaru 
+                    })
                 })
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        statusWarungSekarang = statusBaru;
+                        statusWarungSekarang = Number(data.is_open);
                         perbaruiTampilanTombolStatus(statusWarungSekarang);
+                        alert(`Warung berhasil di-set ${statusBaru == 1 ? 'Buka' : 'Tutup'}`);
                     } else {
                         alert('Gagal memperbarui status: ' + data.message);
                     }
@@ -345,7 +349,6 @@
                 .catch(err => alert('Terjadi kesalahan koneksi ke server.'));
             }
         }
-
         
     </script>
 
