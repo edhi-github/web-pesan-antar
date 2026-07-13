@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dapur Utama - Rekap Pesanan Masuk </title>
-    <!-- Menggunakan Tailwind CSS untuk layouting cepat  -->
+    <title>Dapur Utama - Rekap Pesanan Masuk</title>
+    <!-- Menggunakan Tailwind CSS untuk layouting cepat -->
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 text-gray-800 antialiased font-sans">
@@ -122,6 +122,30 @@
                     const menitLalu = Math.floor((new Date() - new Date(order.created_at)) / 60000);
                     const teksWaktu = menitLalu < 1 ? 'Baru saja' : `${menitLalu} mnt lalu`;
 
+                    // Logika pengecekan bukti bayar
+                    let htmlBuktiBayar = `
+                        <div class="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg p-2 text-center font-medium">
+                            ⚠️ Belum ada bukti bayar
+                        </div>
+                    `;
+
+                    if (order.payment_proof_url) {
+                        htmlBuktiBayar = `
+                            <div class="bg-gray-50 border border-gray-200 rounded-xl p-2 flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <img src="${order.payment_proof_url}" class="w-10 h-10 object-cover rounded-md border border-gray-300 cursor-pointer hover:opacity-80 transition" onclick="bukaModalBukti('${order.payment_proof_url}')">
+                                    <div>
+                                        <span class="text-[11px] font-bold text-gray-700 block leading-tight">Bukti Pembayaran</span>
+                                        <span class="text-[9px] text-green-600 bg-green-50 px-1 py-0.2 rounded font-semibold">Sudah Upload</span>
+                                    </div>
+                                </div>
+                                <button type="button" onclick="bukaModalBukti('${order.payment_proof_url}')" class="text-[11px] text-blue-600 hover:text-blue-800 font-bold bg-white border border-gray-300 px-2.5 py-1 rounded-lg shadow-sm transition">
+                                    🔍 Lihat
+                                </button>
+                            </div>
+                        `;
+                    }
+
                     const kartuHtml = `
                         <div id="order-card-${order.id}" class="bg-yellow-50/70 rounded-2xl p-4 shadow-sm border-2 border-yellow-200 flex flex-col justify-between transition-all">
                             <div>
@@ -135,9 +159,12 @@
                                         📍 Lokasi: ${order.table_or_address}
                                     </div>
                                 </div>
-                                <div class="bg-white rounded-xl p-3 border border-yellow-100 text-sm space-y-1">
+                                <div class="bg-white rounded-xl p-3 border border-yellow-100 text-sm space-y-1 mb-2">
                                     ${htmlItems}
                                 </div>
+                                
+                                <!-- ELEMENT BUKTI BAYAR DI SINI -->
+                                ${htmlBuktiBayar}
                             </div>
                             <div class="mt-4 pt-3 border-t border-yellow-100 flex items-center justify-between">
                                 <div>
@@ -221,9 +248,19 @@
 
                     const waktuSelesai = new Date(order.created_at).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
 
+                    // Cek bukti bayar untuk riwayat
+                    let tombolBuktiRiwayat = '';
+                    if (order.payment_proof_url) {
+                        tombolBuktiRiwayat = `
+                            <button onclick="bukaModalBukti('${order.payment_proof_url}')" class="mt-2 block w-full text-center text-[10px] bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-1 rounded-md border transition">
+                                📄 Lihat Bukti Bayar
+                            </button>
+                        `;
+                    }
+
                     const barisRiwayatHtml = `
                         <div class="bg-white border border-gray-100 rounded-xl p-4 flex justify-between items-center shadow-sm">
-                            <div>
+                            <div class="flex-1 pr-2">
                                 <div class="flex items-center gap-2 mb-1">
                                     <span class="text-xs font-black text-gray-400">#ORD-${order.id}</span>
                                     <span class="font-bold text-gray-900 text-sm">${order.customer_name}</span>
@@ -232,8 +269,9 @@
                                 <ul class="text-xs text-gray-500 list-disc list-inside space-y-0.5">
                                     ${htmlItems}
                                 </ul>
+                                ${tombolBuktiRiwayat}
                             </div>
-                            <div class="text-right">
+                            <div class="text-right flex flex-col justify-between h-full min-w-[80px]">
                                 <span class="text-xs font-bold text-gray-400 block"> Jam ${waktuSelesai}</span>
                                 <span class="text-sm font-black text-green-600">Rp ${order.total_price.toLocaleString('id-ID')}</span>
                             </div>
@@ -243,6 +281,33 @@
                 });
             })
             .catch(err => console.error('Gagal memuat riwayat:', err));
+        }
+    </script>
+
+    <!-- 3. MODAL POPUP UNTUK MEMPERBESAR BUKTI BAYAR -->
+    <div id="modal-bukti-bayar" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm animate-fadeIn" onclick="tutupModalBukti()">
+        <div class="relative max-w-sm w-full bg-white rounded-2xl p-3 shadow-2xl" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center mb-2 pb-1 border-b">
+                <h3 class="text-xs font-bold text-gray-800">Pratinjau Bukti Pembayaran</h3>
+                <button onclick="tutupModalBukti()" class="text-gray-400 hover:text-gray-700 font-bold text-sm bg-gray-100 hover:bg-gray-200 w-6 h-6 rounded-full flex items-center justify-center">✕</button>
+            </div>
+            <img id="img-modal-target" src="" alt="Bukti Bayar Besar" class="w-full max-h-[450px] object-contain rounded-xl border">
+            <a id="link-download-bukti" href="" download="bukti-bayar.jpg" target="_blank" class="mt-3 block w-full text-center bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 rounded-xl transition">
+                📥 Buka di Tab Baru / Download
+            </a>
+        </div>
+    </div>
+
+    <!-- SCRIPT TAMBAHAN UTK KONTROL MODAL -->
+    <script>
+        function bukaModalBukti(url) {
+            document.getElementById('img-modal-target').src = url;
+            document.getElementById('link-download-bukti').href = url;
+            document.getElementById('modal-bukti-bayar').classList.remove('hidden');
+        }
+
+        function tutupModalBukti() {
+            document.getElementById('modal-bukti-bayar').classList.add('hidden');
         }
     </script>
 </body>
