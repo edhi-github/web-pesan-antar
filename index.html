@@ -15,7 +15,8 @@
                 <h1 id="header-nama-warung" class="text-xl font-bold text-orange-600 uppercase">Memuat...</h1>
                 <p id="header-desc" class="text-xs text-gray-500">Menghubungkan ke toko...</p>
             </div>
-            <span class="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1">
+            <!-- Ditambahkan id="status-toko" untuk kontrol dinamis -->
+            <span id="status-toko" class="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1">
                 <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Buka
             </span>
         </div>
@@ -27,7 +28,12 @@
         </div>
 
         <div id="konten-toko">
-            <div class="bg-orange-50 border border-orange-200 rounded-xl p-3 mb-6 text-sm text-orange-800">
+            <!-- Alert Toko Tutup (Default Tersembunyi) -->
+            <div id="alert-toko-tutup" class="hidden bg-red-100 border border-red-300 rounded-xl p-3 mb-6 text-sm text-red-800 font-medium">
+                🔒 <strong>Mohon Maaf:</strong> Warung saat ini sedang Tutup. Anda tidak dapat melakukan pemesanan untuk sementara waktu.
+            </div>
+
+            <div id="banner-warung" class="bg-orange-50 border border-orange-200 rounded-xl p-3 mb-6 text-sm text-orange-800">
                 📣 <strong>Menu Hari Ini:</strong> Pilih menu di bawah. Pesanan akan langsung masuk ke dapur kami!
             </div>
 
@@ -71,31 +77,22 @@
 
             <!-- Form Input Data Diri -->
             <form id="form-checkout" class="space-y-4" onsubmit="kirimPesananKeSistem(event)">
-                
-                <!-- GRID INTERNAL: MEMBAGI INPUT MENJADI 2 KOLOM -->
                 <div class="grid grid-cols-2 gap-3">
-                    <!-- Kolom 1: Nama -->
                     <div>
                         <label class="block text-[11px] font-bold text-gray-600 uppercase mb-1">Nama Anda</label>
                         <input type="text" id="cust-name" required placeholder="Budi Santoso" 
                             class="w-full border border-gray-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-orange-500 focus:outline-none">
                     </div>
-                    
-                    <!-- Kolom 2: No. HP -->
                     <div>
                         <label class="block text-[11px] font-bold text-gray-600 uppercase mb-1">No. HP / WhatsApp</label>
                         <input type="tel" id="cust-phone" required placeholder="08123456xxx" 
                             class="w-full border border-gray-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-orange-500 focus:outline-none">
                     </div>
-
-                    <!-- Kolom 3: No. Meja -->
                     <div>
                         <label class="block text-[11px] font-bold text-gray-600 uppercase mb-1">No. Meja / Catatan</label>
                         <input type="text" id="cust-table" required placeholder="Meja 4 / Bungkus" 
                             class="w-full border border-gray-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-orange-500 focus:outline-none">
                     </div>
-
-                    <!-- Kolom 4: Tombol Buka Rekening -->
                     <div class="flex flex-col justify-end">
                         <button type="button" onclick="toggleInfoPembayaran()" 
                                 class="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold py-2 px-2.5 rounded-lg border border-blue-200 flex justify-between items-center transition h-[38px]">
@@ -105,7 +102,7 @@
                     </div>
                 </div>
 
-                <!-- AREA INFORMASI REKENING (Melayang penuh di dalam form saat dibuka) -->
+                <!-- AREA INFORMASI REKENING -->
                 <div id="info-pembayaran" class="hidden bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-3 animate-fadeIn">
                     <div class="text-xs text-gray-600 space-y-1">
                         <p class="font-bold text-gray-700">Silakan transfer ke salah satu rekening berikut:</p>
@@ -135,19 +132,15 @@
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
-                <!-- FIELD UPLOAD BUKTI BAYAR (DIBUAT LEBIH TIPIS) -->
-                <div class="pt-1">
-                    <label class="block text-[9px] font-bold text-gray-600 uppercase mb-1">Upload Bukti Bayar (.jpg, .png, .pdf)</label>
-                    <input type="file" id="cust-payment-proof" accept="image/*, application/pdf" required
-                        class="w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 border border-gray-300 rounded-lg p-1 focus:outline-none focus:ring-2 focus:ring-orange-500">
-                </div>
-
-                
-                <!-- TOTAL & TOMBOL SUBMIT -->
-                <div class="border-t pt-2 mt-2 flex justify-between items-center text-sm font-bold">
-                    <span class="text-xs text-gray-600">Total :</span>
-                    <span id="modal-total" class="text-orange-600 text-base">Rp 0</span>
-                </div>
+                    <div class="pt-1">
+                        <label class="block text-[9px] font-bold text-gray-600 uppercase mb-1">Upload Bukti Bayar (.jpg, .png, .pdf)</label>
+                        <input type="file" id="cust-payment-proof" accept="image/*, application/pdf" required
+                            class="w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 border border-gray-300 rounded-lg p-1 focus:outline-none focus:ring-2 focus:ring-orange-500">
+                    </div>
+                    <div class="border-t pt-2 mt-2 flex justify-between items-center text-sm font-bold">
+                        <span class="text-xs text-gray-600">Total :</span>
+                        <span id="modal-total" class="text-orange-600 text-base">Rp 0</span>
+                    </div>
                 </div>
 
                 <button type="submit" id="btn-submit-order" class="w-full bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-2.5 rounded-xl shadow-md transition disabled:bg-gray-400">
@@ -163,6 +156,7 @@
 
         let keranjang = [];
         let totalHarga = 0;
+        let isShopOpen = true; // Flag status operasional warung
 
         document.addEventListener("DOMContentLoaded", () => {
             if (!currentShopSlug) {
@@ -177,11 +171,44 @@
             muatProdukDariDatabase();
         });
 
+        function updateStatusTokoUI(isOpen) {
+            isShopOpen = isOpen;
+            const statusBadge = document.getElementById('status-toko');
+            const alertTokoTutup = document.getElementById('alert-toko-tutup');
+            const bannerWarung = document.getElementById('banner-warung');
+            const btnSubmitOrder = document.getElementById('btn-submit-order');
+
+            if (!isOpen) {
+                // Ubah badge header ke Tutup (Merah)
+                statusBadge.className = "bg-red-100 text-red-800 text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1";
+                statusBadge.innerHTML = `<span class="w-2 h-2 bg-red-500 rounded-full"></span> Tutup`;
+                
+                // Tampilkan alert & sembunyikan banner promo biasa
+                alertTokoTutup.classList.remove('hidden');
+                bannerWarung.classList.add('hidden');
+
+                // Kunci tombol submit formulir
+                if (btnSubmitOrder) {
+                    btnSubmitOrder.disabled = true;
+                    btnSubmitOrder.innerText = "🔒 Toko Tutup - Tidak Bisa Kirim";
+                }
+            }
+        }
+
         function muatProdukDariDatabase() {
             const containerMenu = document.getElementById('container-menu');
             fetch(`${API_URL}/api/products?shop=${currentShopSlug}`)
                 .then(res => res.json())
                 .then(response => {
+                    // Penyesuaian: Mengecek properti status toko dari backend jika ada (misal response.shop_status atau response.is_open)
+                    // Contoh implementasi di bawah membaca status toko langsung dari properti root response API Anda.
+                    if (response.hasOwnProperty('is_open')) {
+                        updateStatusTokoUI(response.is_open);
+                    } else if (response.data && response.data.length > 0 && response.data[0].hasOwnProperty('shop_status')) {
+                        // Atau jika status disisipkan di dalam objek produk
+                        updateStatusTokoUI(response.data[0].shop_status === 'buka' || response.data[0].shop_status === true);
+                    }
+
                     if (!response.success || !response.data || response.data.length === 0) {
                         containerMenu.innerHTML = '<div class="text-center py-10 text-gray-400 text-sm">Belum ada menu yang tersedia saat ini.</div>';
                         return;
@@ -197,7 +224,8 @@
                         const dbKategori = produk.category || produk.kategori || 'Menu';
                         const dbFoto = produk.image_url || produk.foto;
 
-                        const tersedia = (produk.is_available !== 0 && produk.is_available !== '0' && produk.is_available !== false);
+                        // Produk tersedia HANYA JIKA item_available dan Toko dalam keadaan Buka
+                        const tersedia = (produk.is_available !== 0 && produk.is_available !== '0' && produk.is_available !== false) && isShopOpen;
 
                         let ruteLengkapFoto = 'https://via.placeholder.com/150'; 
 
@@ -227,9 +255,11 @@
                         } else {
                             styleKartuHabis = 'opacity-60 relative select-none';
                             styleFotoHabis = 'grayscale';
+                            // Tampilkan label berbeda jika penyebabnya toko tutup global
+                            const labelKeterangan = !isShopOpen ? 'Toko Tutup' : 'Kosong';
                             tombolHtml = `
                                 <span class="text-xs font-bold text-red-500 bg-red-50 px-2 py-1 rounded-md border border-red-100">
-                                    Kosong
+                                    ${labelKeterangan}
                                 </span>
                             `;
                         }
@@ -263,6 +293,10 @@
         }
 
         function tambahItem(productIdAsli, nama, harga) {
+            if(!isShopOpen) {
+                alert("Tidak dapat menambah item. Warung sedang tutup!");
+                return;
+            }
             const idUnik = Date.now() + Math.random().toString(36).substr(2, 9);
             keranjang.push({ 
                 id: idUnik, 
@@ -288,7 +322,8 @@
             totalHarga = keranjang.reduce((sum, item) => sum + item.harga, 0);
             
             const cartBar = document.getElementById('cart-bar');
-            if(keranjang.length > 0) {
+            // Keranjang belanja hanya muncul jika warung buka dan item > 0
+            if(keranjang.length > 0 && isShopOpen) {
                 cartBar.classList.remove('hidden');
                 document.getElementById('cart-count').innerText = `${keranjang.length} Makanan/Minuman dipilih`;
                 document.getElementById('cart-total').innerText = `Rp ${totalHarga.toLocaleString('id-ID')}`;
@@ -337,6 +372,10 @@
         }
 
         function bukaModalPesanan() {
+            if(!isShopOpen) {
+                alert("Warung telah tutup. Proses checkout tidak dapat dilanjutkan.");
+                return;
+            }
             document.getElementById('order-modal').classList.remove('hidden');
             renderModalItems(); 
         }
@@ -345,20 +384,22 @@
             document.getElementById('order-modal').classList.add('hidden');
         }
 
-        // PERUBAHAN UTAMA: FUNGSI SUBMIT MENGGUNAKAN FORMDATA UNTUK MENDUKUNG UPLOAD FILE
         function kirimPesananKeSistem(event) {
             event.preventDefault();
+
+            if(!isShopOpen) {
+                alert("Gagal memproses. Warung sedang tutup!");
+                return;
+            }
             
             const btnSubmit = document.getElementById('btn-submit-order');
             const fileInput = document.getElementById('cust-payment-proof');
             
-            // Validasi jika file belum dipilih
             if (fileInput.files.length === 0) {
                 alert("Silakan unggah bukti pembayaran terlebih dahulu!");
                 return;
             }
 
-            // Ubah text tombol untuk indikasi loading
             btnSubmit.disabled = true;
             btnSubmit.innerText = "⏳ Sedang Mengirim Pesanan...";
 
@@ -366,28 +407,21 @@
             const phone = document.getElementById('cust-phone').value;
             const table = document.getElementById('cust-table').value;
             
-            // Format item pesanan agar bersih sebelum di-stringify
             const itemsValid = keranjang.map(item => ({
                 product_id: item.product_id,
                 harga: item.harga,
                 catatan: item.catatan || ''
             }));
 
-            // Inisialisasi Objek FormData
             const formData = new FormData();
             formData.append('shop', currentShopSlug);
             formData.append('customer_name', nama);
             formData.append('customer_phone', phone);
             formData.append('table_or_address', table);
             formData.append('total_price', totalHarga);
-            
-            // Karena items berbentuk array/object, kita ubah ke string JSON agar bisa dibaca backend
             formData.append('items', JSON.stringify(itemsValid));
-            
-            // Memasukkan file bukti bayar fisik
             formData.append('payment_proof', fileInput.files[0]);
 
-            // Kirim ke backend (Tanpa header Content-Type karena browser akan otomatis mengaturnya sebagai multipart/form-data)
             fetch(`${API_URL}/api/orders`, {
                 method: 'POST',
                 body: formData
@@ -396,7 +430,6 @@
             .then(data => {
                 if (data.success) {
                     alert(`Terima kasih ${nama}! Pesanan & Bukti Pembayaran Berhasil Dikirim (ID: #ORD-${data.order_id})`);
-                    // Reset Halaman
                     keranjang = [];
                     hitungTotal();
                     tutupModalPesanan();
