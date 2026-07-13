@@ -122,19 +122,7 @@
                     const menitLalu = Math.floor((new Date() - new Date(order.created_at)) / 60000);
                     const teksWaktu = menitLalu < 1 ? 'Baru saja' : `${menitLalu} mnt lalu`;
 
-                    // Logika pengecekan bukti bayar
-                    data.forEach(order => {
-                    let htmlItems = '';
-                    order.items.forEach(item => {
-                        htmlItems += `
-                            <div class="border-b border-gray-100 last:border-0 py-1">
-                                <span class="font-bold text-gray-900">${item.kuantitas}x</span> ${item.nama}
-                                ${item.catatan ? `<span class="block text-xs text-red-600 font-medium bg-red-50 px-2 py-0.5 rounded mt-0.5 w-max">📝 Catatan: ${item.catatan}</span>` : ''}
-                            </div>
-                        `;
-                    });
-
-                    // --- LOGIKA RUTE LENGKAP BUKTI BAYAR (DISAMAKAN) ---
+                    // --- LOGIKA RUTE LENGKAP BUKTI BAYAR ---
                     const dbBukti = order.payment_proof_url;
                     let ruteLengkapBukti = ''; 
 
@@ -152,7 +140,7 @@
 
                     // Logika tampilan elemen HTML bukti bayar
                     let htmlBuktiBayar = `
-                        <div class="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg p-2 text-center font-medium">
+                        <div class="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg p-2 text-center font-medium mt-2">
                             ⚠️ Belum ada bukti bayar
                         </div>
                     `;
@@ -168,66 +156,6 @@
                                     </div>
                                 </div>
                                 <button type="button" onclick="bukaModalBukti('${ruteLengkapBukti}')" class="text-[11px] text-blue-600 hover:text-blue-800 font-bold bg-white border border-gray-300 px-2.5 py-1 rounded-lg shadow-sm transition">
-                                    🔍 Lihat
-                                </button>
-                            </div>
-                        `;
-                    }
-
-                    const menitLalu = Math.floor((new Date() - new Date(order.created_at)) / 60000);
-                    const teksWaktu = menitLalu < 1 ? 'Baru saja' : `${menitLalu} mnt lalu`;
-
-                    const kartuHtml = `
-                        <div id="order-card-${order.id}" class="bg-yellow-50/70 rounded-2xl p-4 shadow-sm border-2 border-yellow-200 flex flex-col justify-between transition-all">
-                            <div>
-                                <div class="flex justify-between items-center border-b border-yellow-100 pb-2 mb-2">
-                                    <span class="bg-yellow-400 text-yellow-950 text-xs font-black px-2.5 py-0.5 rounded-md">#ORD-${order.id}</span>
-                                    <span class="text-xs font-semibold text-gray-500">🕒 ${teksWaktu}</span>
-                                </div>
-                                <div class="text-sm font-bold text-gray-900 mb-2">
-                                    ${order.customer_name}
-                                    <div class="text-xs text-orange-700 bg-orange-50 inline-block px-2 py-0.5 rounded mt-1 font-medium border border-orange-100">
-                                        📍 Lokasi: ${order.table_or_address}
-                                    </div>
-                                </div>
-                                <div class="bg-white rounded-xl p-3 border border-yellow-100 text-sm space-y-1">
-                                    ${htmlItems}
-                                </div>
-                                
-                                <!-- Sisipkan Tampilan Bukti Bayar -->
-                                ${htmlBuktiBayar}
-                            </div>
-                            <div class="mt-4 pt-3 border-t border-yellow-100 flex items-center justify-between">
-                                <div>
-                                    <span class="text-[10px] text-gray-400 block uppercase font-bold">Total Tagihan</span>
-                                    <span class="text-base font-black text-gray-900">Rp ${order.total_price.toLocaleString('id-ID')}</span>
-                                </div>
-                                <button onclick="selesaikanPesanan('${order.id}')" class="bg-green-600 hover:bg-green-700 text-white font-bold text-sm px-6 py-3 rounded-xl shadow-md transition">
-                                    ✓ Selesai Diantar
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                    container.insertAdjacentHTML('beforeend', kartuHtml);
-                });
-
-                    let htmlBuktiBayar = `
-                        <div class="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg p-2 text-center font-medium">
-                            ⚠️ Belum ada bukti bayar
-                        </div>
-                    `;
-
-                    if (order.payment_proof_url) {
-                        htmlBuktiBayar = `
-                            <div class="bg-gray-50 border border-gray-200 rounded-xl p-2 flex items-center justify-between">
-                                <div class="flex items-center gap-2">
-                                    <img src="${order.payment_proof_url}" class="w-10 h-10 object-cover rounded-md border border-gray-300 cursor-pointer hover:opacity-80 transition" onclick="bukaModalBukti('${order.payment_proof_url}')">
-                                    <div>
-                                        <span class="text-[11px] font-bold text-gray-700 block leading-tight">Bukti Pembayaran</span>
-                                        <span class="text-[9px] text-green-600 bg-green-50 px-1 py-0.2 rounded font-semibold">Sudah Upload</span>
-                                    </div>
-                                </div>
-                                <button type="button" onclick="bukaModalBukti('${order.payment_proof_url}')" class="text-[11px] text-blue-600 hover:text-blue-800 font-bold bg-white border border-gray-300 px-2.5 py-1 rounded-lg shadow-sm transition">
                                     🔍 Lihat
                                 </button>
                             </div>
@@ -250,8 +178,7 @@
                                 <div class="bg-white rounded-xl p-3 border border-yellow-100 text-sm space-y-1 mb-2">
                                     ${htmlItems}
                                 </div>
-                                
-                                <!-- ELEMENT BUKTI BAYAR DI SINI -->
+                                <!-- Elemen Bukti Bayar -->
                                 ${htmlBuktiBayar}
                             </div>
                             <div class="mt-4 pt-3 border-t border-yellow-100 flex items-center justify-between">
@@ -286,6 +213,7 @@
             }
         }
 
+        // Manajemen Navigasi Tab
         function gantiTab(tab) {
             const tabAntrean = document.getElementById('tab-aktif');
             const tabRiwayat = document.getElementById('tab-selesai');
@@ -310,7 +238,6 @@
         function ambilRiwayatDariDatabase() {
             if (!currentShopSlug) return;
 
-            // Mengirim query string ?shop= ke backend untuk penyaringan riwayat
             fetch(`${API_URL}/api/orders/history?shop=${currentShopSlug}`)
             .then(res => res.json())
             .then(data => {
@@ -336,13 +263,7 @@
 
                     const waktuSelesai = new Date(order.created_at).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
 
-                    data.forEach(order => {
-                    let htmlItems = '';
-                    order.items.forEach(item => {
-                        htmlItems += `<li>${item.kuantitas}x ${item.nama}</li>`;
-                    });
-
-                    // --- LOGIKA RUTE LENGKAP BUKTI BAYAR (DISAMAKAN) ---
+                    // --- LOGIKA RUTE LENGKAP BUKTI BAYAR UNTUK RIWAYAT ---
                     const dbBukti = order.payment_proof_url;
                     let ruteLengkapBukti = ''; 
 
@@ -367,8 +288,6 @@
                         `;
                     }
 
-                    const waktuSelesai = new Date(order.created_at).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
-
                     const barisRiwayatHtml = `
                         <div class="bg-white border border-gray-100 rounded-xl p-4 flex justify-between items-center shadow-sm">
                             <div class="flex-1 pr-2">
@@ -382,38 +301,7 @@
                                 </ul>
                                 ${tombolBuktiRiwayat}
                             </div>
-                            <div class="text-right">
-                                <span class="text-xs font-bold text-gray-400 block"> Jam ${waktuSelesai}</span>
-                                <span class="text-sm font-black text-green-600">Rp ${order.total_price.toLocaleString('id-ID')}</span>
-                            </div>
-                        </div>
-                    `;
-                    containerRiwayat.insertAdjacentHTML('beforeend', barisRiwayatHtml);
-                });
-                    // Cek bukti bayar untuk riwayat
-                    let tombolBuktiRiwayat = '';
-                    if (order.payment_proof_url) {
-                        tombolBuktiRiwayat = `
-                            <button onclick="bukaModalBukti('${order.payment_proof_url}')" class="mt-2 block w-full text-center text-[10px] bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-1 rounded-md border transition">
-                                📄 Lihat Bukti Bayar
-                            </button>
-                        `;
-                    }
-
-                    const barisRiwayatHtml = `
-                        <div class="bg-white border border-gray-100 rounded-xl p-4 flex justify-between items-center shadow-sm">
-                            <div class="flex-1 pr-2">
-                                <div class="flex items-center gap-2 mb-1">
-                                    <span class="text-xs font-black text-gray-400">#ORD-${order.id}</span>
-                                    <span class="font-bold text-gray-900 text-sm">${order.customer_name}</span>
-                                    <span class="text-[10px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded">📍 ${order.table_or_address}</span>
-                                </div>
-                                <ul class="text-xs text-gray-500 list-disc list-inside space-y-0.5">
-                                    ${htmlItems}
-                                </ul>
-                                ${tombolBuktiRiwayat}
-                            </div>
-                            <div class="text-right flex flex-col justify-between h-full min-w-[80px]">
+                            <div class="text-right flex flex-col justify-between min-w-[80px]">
                                 <span class="text-xs font-bold text-gray-400 block"> Jam ${waktuSelesai}</span>
                                 <span class="text-sm font-black text-green-600">Rp ${order.total_price.toLocaleString('id-ID')}</span>
                             </div>
