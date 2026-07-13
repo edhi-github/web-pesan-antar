@@ -172,28 +172,54 @@
         });
 
         function updateStatusTokoUI(isOpen) {
-            isShopOpen = isOpen;
+            // Paksa nilai menjadi boolean murni (true jika 1, false jika 0)
+            const isTrueOpen = Number(isOpen) === 1 || isOpen === true;
+            
+            isShopOpen = isTrueOpen;
+            
             const statusBadge = document.getElementById('status-toko');
             const alertTokoTutup = document.getElementById('alert-toko-tutup');
             const bannerWarung = document.getElementById('banner-warung');
             const btnSubmitOrder = document.getElementById('btn-submit-order');
 
-            if (!isOpen) {
-                // Ubah badge header ke Tutup (Merah)
-                statusBadge.className = "bg-red-100 text-red-800 text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1";
-                statusBadge.innerHTML = `<span class="w-2 h-2 bg-red-500 rounded-full"></span> Tutup`;
+            if (!isTrueOpen) {
+                // === KONDISI TOKO TUTUP (MERAH) ===
+                if (statusBadge) {
+                    statusBadge.className = "bg-red-100 text-red-800 text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1";
+                    statusBadge.innerHTML = `<span class="w-2 h-2 bg-red-500 rounded-full"></span> Tutup`;
+                }
                 
-                // Tampilkan alert & sembunyikan banner promo biasa
-                alertTokoTutup.classList.remove('hidden');
-                bannerWarung.classList.add('hidden');
+                // Tampilkan alert tutup & sembunyikan banner
+                if (alertTokoTutup) alertTokoTutup.classList.remove('hidden');
+                if (bannerWarung) bannerWarung.classList.add('hidden');
 
                 // Kunci tombol submit formulir
                 if (btnSubmitOrder) {
                     btnSubmitOrder.disabled = true;
                     btnSubmitOrder.innerText = "🔒 Toko Tutup - Tidak Bisa Kirim";
+                    // Opsional: tambahkan class agar tombol terlihat disable (misal warna abu-abu)
+                    btnSubmitOrder.classList.add('opacity-50', 'cursor-not-allowed');
+                }
+            } else {
+                // === KONDISI TOKO BUKA (HIJAU) - SEBELUMNYA HILANG ===
+                if (statusBadge) {
+                    statusBadge.className = "bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1";
+                    statusBadge.innerHTML = `<span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Buka`;
+                }
+                
+                // Sembunyikan alert tutup & tampilkan kembali banner warung
+                if (alertTokoTutup) alertTokoTutup.classList.add('hidden');
+                if (bannerWarung) bannerWarung.classList.remove('hidden');
+
+                // Aktifkan kembali tombol submit formulir
+                if (btnSubmitOrder) {
+                    btnSubmitOrder.disabled = false;
+                    btnSubmitOrder.innerText = "Kirim Pesanan Sekarang"; // Sesuaikan dengan teks asli Anda
+                    btnSubmitOrder.classList.remove('opacity-50', 'cursor-not-allowed');
                 }
             }
         }
+
 
         function muatProdukDariDatabase() {
             const containerMenu = document.getElementById('container-menu');
