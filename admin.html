@@ -12,7 +12,6 @@
     <header class="bg-white shadow-sm sticky top-0 z-10 border-b border-orange-100">
         <div class="max-w-md mx-auto px-4 py-4">
             <div class="flex justify-between items-center mb-3">
-                <!-- href default diubah ke penjualan.html agar aman jika JS telat memuat -->
                 <a href="penjualan.html" id="btn-kembali" class="text-gray-500 hover:text-gray-700 text-xl font-bold">⬅️</a>    
                 <div>
                     <h1 class="text-xl font-bold text-gray-900">Panel Dapur & Stok</h1>
@@ -23,7 +22,7 @@
                 </button>
             </div>
             
-            <!-- TOMBOL TAMBAH PRODUK (OTOMATIS OPER PARAMETER SHOP) -->
+            <!-- TOMBOL TAMBAH PRODUK -->
             <a id="btn-tambah-produk" href="tambah-produk.html" class="block w-full text-center bg-orange-600 hover:bg-orange-700 text-white text-sm font-bold py-2.5 px-4 rounded-xl shadow-sm transition active:scale-[0.98]">
                 ➕ Tambah Produk Baru
             </a>
@@ -38,7 +37,7 @@
 
         <div id="konten-admin">
             <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-6 text-xs text-blue-800">
-                💡 <strong>Info Dapur:</strong> Klik sakelar/tombol di samping menu untuk mengubah status penjualan secara instan.
+                💡 <strong>Info Dapur:</strong> Klik sakelar status untuk mengubah ketersediaan secara instan, atau klik <strong>Edit</strong> untuk mengubah detail data menu.
             </div>
 
             <h2 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Daftar Menu Saat Ini</h2>
@@ -53,7 +52,6 @@
     </main>
 
     <script>
-        // Tangkap parameter ?shop= dari URL
         const urlParams = new URLSearchParams(window.location.search);
         const currentShopSlug = urlParams.get('shop');
 
@@ -65,11 +63,9 @@
                 return;
             }
 
-            // Atur nama warung dinamis di sub-header berdasarkan slug
             const namaWarungCantik = currentShopSlug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
             document.getElementById('admin-nama-warung').innerText = `${namaWarungCantik} — Kontrol Menu Real-time`;
 
-            // === PERBAIKAN DI SINI: Diarahkan ke penjualan.html dengan menyertakan ?shop ===
             document.getElementById('btn-kembali').href = `penjualan.html?shop=${currentShopSlug}`;
             document.getElementById('btn-tambah-produk').href = `tambah-produk.html?shop=${currentShopSlug}`;
 
@@ -97,58 +93,56 @@
                         const dbKategori = produk.category || produk.kategori || 'Menu';
                         const dbFoto = produk.image_url || produk.foto;
 
-                        // Default placeholder jika tidak ada foto
                         let ruteFoto = 'https://via.placeholder.com/150'; 
 
                         if (dbFoto) {
                             if (dbFoto.startsWith('http://') || dbFoto.startsWith('https://')) {
-                                // JIKA LINKNYA DARI CLOUDFLARE R2 YANG PRIVACY ERROR:
                                 if (dbFoto.includes('r2.dev')) {
-                                    // Kita bypass error HTTPS-nya menggunakan proxy gambar gratis (wsrv.nl atau images.weserv.nl)
-                                    // Proxy ini aman, cepat, gratis, dan otomatis memberikan sertifikat HTTPS yang valid!
                                     ruteFoto = `https://wsrv.nl/?url=${encodeURIComponent(dbFoto)}`;
                                 } else {
-                                    // Jika link luar lain yang normal
                                     ruteFoto = dbFoto;
                                 }
                             } else {
-                                // Jika masih berupa path lokal backend (/uploads/...)
                                 ruteFoto = `${API_URL}${dbFoto}`;
                             }
                         }
 
                         const tersedia = (produk.is_available !== 0 && produk.is_available !== '0' && produk.is_available !== false);
-                        //const ruteFoto = dbFoto ? `${API_URL}${dbFoto}` : 'https://via.placeholder.com/150';
                         
                         let tombolAksiHtml = '';
                         if (tersedia) {
                             tombolAksiHtml = `
                                 <button onclick="ubahStatusStok('${dbId}', 0)" 
-                                        class="bg-green-100 hover:bg-green-200 text-green-700 text-xs font-bold px-3 py-2 rounded-lg transition whitespace-nowrap flex items-center gap-1">
-                                    <span class="w-2 h-2 bg-green-500 rounded-full"></span> Jual (Tersedia)
+                                        class="bg-green-100 hover:bg-green-200 text-green-700 text-xs font-bold px-2.5 py-2 rounded-lg transition whitespace-nowrap flex items-center gap-1">
+                                    <span class="w-2 h-2 bg-green-500 rounded-full"></span> Tersedia
                                 </button>
                             `;
                         } else {
                             tombolAksiHtml = `
                                 <button onclick="ubahStatusStok('${dbId}', 1)" 
-                                        class="bg-red-100 hover:bg-red-200 text-red-700 text-xs font-bold px-3 py-2 rounded-lg transition whitespace-nowrap flex items-center gap-1">
-                                    <span class="w-2 h-2 bg-red-500 rounded-full animate-ping"></span> Kosong (Habis)
+                                        class="bg-red-100 hover:bg-red-200 text-red-700 text-xs font-bold px-2.5 py-2 rounded-lg transition whitespace-nowrap flex items-center gap-1">
+                                    <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span> Habis
                                 </button>
                             `;
                         }
 
                         const barisMenuHtml = `
                             <div class="bg-white rounded-xl p-3 shadow-sm border border-gray-100 flex items-center justify-between gap-3 ${!tersedia ? 'bg-gray-50 border-dashed' : ''}">
-                                <div class="flex items-center gap-3">
-                                    <img src="${ruteFoto}" alt="${dbNama}" class="w-12 h-12 object-cover rounded-lg bg-gray-100 ${!tersedia ? 'grayscale opacity-50' : ''}">
-                                    <div>
-                                        <h3 class="font-semibold text-sm ${tersedia ? 'text-gray-900' : 'text-gray-400 line-through'}">${dbNama}</h3>
-                                        <p class="text-xs text-gray-500">Rp ${Number(dbHarga).toLocaleString('id-ID')} · <span class="text-orange-600 font-medium">${dbKategori}</span></p>
+                                <div class="flex items-center gap-3 min-w-0 flex-1">
+                                    <img src="${ruteFoto}" alt="${dbNama}" class="w-12 h-12 object-cover rounded-lg bg-gray-100 flex-shrink-0 ${!tersedia ? 'grayscale opacity-50' : ''}">
+                                    <div class="min-w-0 flex-1">
+                                        <h3 class="font-semibold text-sm truncate ${tersedia ? 'text-gray-900' : 'text-gray-400 line-through'}">${dbNama}</h3>
+                                        <p class="text-xs text-gray-500 truncate">Rp ${Number(dbHarga).toLocaleString('id-ID')} · <span class="text-orange-600 font-medium">${dbKategori}</span></p>
                                     </div>
                                 </div>
                                 
-                                <div>
+                                <!-- KELOMPOK TOMBOL AKSI (STATUS STOK & EDIT) -->
+                                <div class="flex items-center gap-2 flex-shrink-0">
                                     ${tombolAksiHtml}
+                                    <a href="edit-produk.html?shop=${currentShopSlug}&id=${dbId}" 
+                                       class="bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-bold p-2 rounded-lg border border-blue-200 transition shadow-sm flex items-center justify-center">
+                                        📝 <span class="hidden sm:inline ml-1">Edit</span>
+                                    </a>
                                 </div>
                             </div>
                         `;
