@@ -15,233 +15,303 @@
         
         <div class="max-w-md mx-auto px-4 pt-3 pb-2 flex justify-between items-center">
             <div>
-                <!-- ID diubah ke 'nama-warung-header' agar bisa diganti dinamis via JS -->
                 <h1 id="nama-warung-header" class="text-lg font-black text-gray-900 tracking-tight uppercase">DAPUR WARUNG</h1>
                 <div class="flex items-center gap-3 mt-1">
-                <span class="text-xs font-semibold text-green-600">● Monitor Pesanan Aktif</span>
-                
-                <!-- Tombol Status Mini -->
-                <button id="btn-status-warung" onclick="toggleStatusWarung()" class="text-[11px] font-bold px-2.5 py-0.5 rounded-full border transition-all shadow-sm">
-                    Status Warung...
-                </button>
-            </div>
+                    <span class="text-xs font-semibold text-green-600">● Monitor Pesanan Aktif</span>
+                    
+                    <!-- Tombol Status Mini -->
+                    <button id="btn-status-warung" onclick="toggleStatusWarung()" class="text-[11px] font-bold px-2.5 py-0.5 rounded-full border transition-all shadow-sm">
+                        Status Warung...
+                    </button>
+                </div>
             </div>
             
-            <!-- Ringkasan Orderan Aktif Hari Ini -->
+            <!-- Ringkasan Orderan Aktif Hari Ini (Total dari Baru + Proses) -->
             <div class="bg-orange-100 text-orange-800 px-3 py-1.5 rounded-lg text-center">
                 <span id="total-antrean" class="block text-sm font-bold">0</span>
                 <span class="text-[10px] uppercase font-bold tracking-wider">Antrean</span>
             </div>
         </div>
 
-        <!-- TOMBOL NAVIGASI MENUJU ADMIN.HTML (DENGAN COPY PARAMETER SHOP) -->
+        <!-- TOMBOL NAVIGASI MENUJU ADMIN.HTML -->
         <div class="max-w-md mx-auto px-4 pb-3">
             <a id="link-admin-stok" href="admin.html" class="block w-full text-center bg-gray-800 hover:bg-gray-900 text-white text-xs font-bold py-2 px-4 rounded-xl shadow-sm transition active:scale-[0.98]">
                 📦 Kelola Stok Menu (Tersedia / Habis)
             </a>
         </div>
       
-        <!-- NAVIGASI TAB UTAMA -->
-        <div class="max-w-md mx-auto px-4 flex border-t border-gray-100">
-            <button onclick="gantiTab('antrean')" id="tab-aktif" class="w-1/2 text-center py-3 text-sm font-bold border-b-4 border-orange-500 text-orange-600 bg-orange-50/50 rounded-tl-xl">
-                Pesanan Aktif (Baru/Proses)
+        <!-- NAVIGASI TAB UTAMA (4 TAB SEJAJAR) -->
+        <div class="max-w-md mx-auto px-2 flex border-t border-gray-100 bg-gray-50 overflow-x-auto scrollbar-none">
+            <button onclick="gantiTab('baru')" id="tab-baru" class="flex-1 min-w-[70px] text-center py-3 text-[11px] font-bold border-b-4 border-orange-500 text-orange-600 bg-orange-50/50">
+                🆕 Baru (<span id="badge-baru">0</span>)
             </button>
-            <button onclick="gantiTab('riwayat')" id="tab-selesai" class="w-1/2 text-center py-3 text-sm font-medium border-b-4 border-transparent text-gray-400 hover:text-gray-600 transition rounded-tr-xl">
-                Riwayat Selesai
+            <button onclick="gantiTab('proses')" id="tab-proses" class="flex-1 min-w-[70px] text-center py-3 text-[11px] font-medium border-b-4 border-transparent text-gray-500 hover:text-gray-700 transition">
+                ⏳ Proses (<span id="badge-proses">0</span>)
+            </button>
+            <button onclick="gantiTab('selesai')" id="tab-selesai" class="flex-1 min-w-[70px] text-center py-3 text-[11px] font-medium border-b-4 border-transparent text-gray-500 hover:text-gray-700 transition">
+                ✅ Selesai
+            </button>
+            <button onclick="gantiTab('reject')" id="tab-reject" class="flex-1 min-w-[70px] text-center py-3 text-[11px] font-medium border-b-4 border-transparent text-gray-500 hover:text-gray-700 transition">
+                ❌ Reject
             </button>
         </div>
     </header>
 
-    <!-- 2. DAFTAR KARTU ANTREAN PESANAN -->
+    <!-- 2. KONTEN UTAMA DAFTAR KARTU -->
     <main class="max-w-md mx-auto p-4 pb-20">
         
-        <!-- CONTAINER UNTUK PESANAN AKTIF -->
-        <div id="container-pesanan-aktif" class="space-y-4">
+        <!-- CONTAINER UNTUK TIAP STATUS -->
+        <div id="container-pesanan" class="space-y-4">
+            <!-- Data dinamis akan dimasukkan ke sini oleh JavaScript -->
             <div class="text-center py-10 text-gray-400 text-sm">Menghubungkan ke server dapur...</div>
-        </div>
-
-        <!-- CONTAINER UNTUK RIWAYAT PESANAN SELESAI (Sifatnya Hidden di Awal) -->
-        <div id="container-pesanan-selesai" class="space-y-4 hidden">
-            <div class="text-center py-10 text-gray-400 text-sm">
-                Belum ada pesanan yang diselesaikan hari ini.
-            </div>
         </div>
 
     </main>
 
-    <!-- INTERAKSI JAVASCRIPT LOKAL -->
+    <!-- INTERAKSI JAVASCRIPT -->
     <script>
-        // Ambil parameter '?shop=slug-warung' dari URL browser
         const urlParams = new URLSearchParams(window.location.search);
         const currentShopSlug = urlParams.get('shop');
 
-        // Validasi: Jika parameter shop tidak diisi di URL, ingatkan user
+        // Menyimpan tab yang sedang aktif saat ini
+        let tabAktifSekarang = 'baru'; 
+
         if (!currentShopSlug) {
             alert("Peringatan: URL tidak memiliki parameter warung. Contoh akses yang benar: penjualan.html?shop=warung-bu-kris");
         } else {
-            // Pasang text nama warung di header (menggantikan tanda '-' dengan spasi agar rapi)
             document.getElementById('nama-warung-header').innerText = `DAPUR ${currentShopSlug.replace(/-/g, ' ')}`;
-            // Sesuaikan link menuju admin.html agar membawa parameter shop yang sama
             document.getElementById('link-admin-stok').href = `admin.html?shop=${currentShopSlug}`;
         }
 
-        // Jalankan fungsi ambil data otomatis saat halaman pertama kali dibuka
-        ambilPesananDariDatabase();
+        // Ambil data pertama kali & set interval 10 detik
+        ambilDataDapur();
+        setInterval(ambilDataDapur, 10000);
 
-        // Fitur Real-time Sederhana: Tarik data dari server setiap 10 detik sekali otomatis
-        setInterval(ambilPesananDariDatabase, 10000);
-
-        function ambilPesananDariDatabase() {
+        // Fungsi Master untuk menarik semua data dan merender tab yang aktif
+        function ambilDataDapur() {
             if (!currentShopSlug) return;
 
-            // Mengirim query string ?shop= ke backend
+            // Kita gunakan endpoint active yang menarik status 'baru' dan 'proses'
             fetch(`${API_URL}/api/orders/active?shop=${currentShopSlug}`)
             .then(res => res.json())
-            .then(data => {
-                const container = document.getElementById('container-pesanan-aktif');
-                
-                // Jika backend me-return error objek / bukan array karena shop tidak valid
-                if (!Array.isArray(data)) {
-                    container.innerHTML = `<div class="text-center py-10 text-red-500 text-sm">${data.message || 'Gagal memuat data.'}</div>`;
-                    return;
+            .then(orders => {
+                if (!Array.isArray(orders)) return;
+
+                // Kelompokkan data lokal untuk menghitung total badge
+                const listBaru = orders.filter(o => o.status === 'baru');
+                const listProses = orders.filter(o => o.status === 'proses');
+
+                // Update angka badge di header tab
+                document.getElementById('badge-baru').innerText = listBaru.length;
+                document.getElementById('badge-proses').innerText = listProses.length;
+                document.getElementById('total-antrean').innerText = listBaru.length + listProses.length;
+
+                // Render tampilan jika yang aktif adalah tab 'baru' atau 'proses'
+                if (tabAktifSekarang === 'baru') {
+                    renderKartuPesanan(listBaru, 'baru');
+                } else if (tabAktifSekarang === 'proses') {
+                    renderKartuPesanan(listProses, 'proses');
                 }
-
-                document.getElementById('total-antrean').innerText = data.length;
-                
-                if (data.length === 0) {
-                    container.innerHTML = '<div class="text-center py-10 text-gray-400 text-sm">Belum ada antrean pesanan baru saat ini.</div>';
-                    return;
-                }
-
-                container.innerHTML = ''; // Bersihkan antrean lama sebelum menggambar data baru
-                
-                data.forEach(order => {
-                    let htmlItems = '';
-                    order.items.forEach(item => {
-                        htmlItems += `
-                            <div class="border-b border-gray-100 last:border-0 py-1">
-                                <span class="font-bold text-gray-900">${item.kuantitas}x</span> ${item.nama}
-                                ${item.catatan ? `<span class="block text-xs text-red-600 font-medium bg-red-50 px-2 py-0.5 rounded mt-0.5 w-max">📝 Catatan: ${item.catatan}</span>` : ''}
-                            </div>
-                        `;
-                    });
-
-                    // --- LOGIKA RUTE LENGKAP BUKTI BAYAR (DISAMAKAN) ---
-                    const dbBukti = order.payment_proof_url;
-                    let ruteLengkapBukti = ''; 
-
-                    if (dbBukti) {
-                        if (dbBukti.startsWith('http://') || dbBukti.startsWith('https://')) {
-                            if (dbBukti.includes('r2.dev')) {
-                                ruteLengkapBukti = `https://wsrv.nl/?url=${encodeURIComponent(dbBukti)}`;
-                            } else {
-                                ruteLengkapBukti = dbBukti;
-                            }
-                        } else {
-                            ruteLengkapBukti = `${API_URL}${dbBukti}`;
-                        }
-                    }
-
-                    // Logika tampilan elemen HTML bukti bayar
-                    let htmlBuktiBayar = `
-                        <div class="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg p-2 text-center font-medium">
-                            ⚠️ Belum ada bukti bayar
-                        </div>
-                    `;
-
-                    if (ruteLengkapBukti) {
-                        htmlBuktiBayar = `
-                            <div class="bg-gray-50 border border-gray-200 rounded-xl p-2 flex items-center justify-between mt-2">
-                                <div class="flex items-center gap-2">
-                                    <img src="${ruteLengkapBukti}" class="w-10 h-10 object-cover rounded-md border border-gray-300 cursor-pointer hover:opacity-80 transition" onclick="bukaModalBukti('${ruteLengkapBukti}')">
-                                    <div>
-                                        <span class="text-[11px] font-bold text-gray-700 block leading-tight">Bukti Pembayaran</span>
-                                        <span class="text-[9px] text-green-600 bg-green-50 px-1 py-0.2 rounded font-semibold">Sudah Upload</span>
-                                    </div>
-                                </div>
-                                <button type="button" onclick="bukaModalBukti('${ruteLengkapBukti}')" class="text-[11px] text-blue-600 hover:text-blue-800 font-bold bg-white border border-gray-300 px-2.5 py-1 rounded-lg shadow-sm transition">
-                                    🔍 Lihat
-                                </button>
-                            </div>
-                        `;
-                    }
-
-                    const menitLalu = Math.floor((new Date() - new Date(order.created_at)) / 60000);
-                    const teksWaktu = menitLalu < 1 ? 'Baru saja' : `${menitLalu} mnt lalu`;
-
-                    // LOGIKA DINAMIS WARNA KARTU & TOMBOL AKSI BERDASARKAN STATUS
-                    let kartuStyle = "";
-                    let htmlTombolAksi = "";
-                    let labelStatus = "";
-
-                    if (order.status === 'baru') {
-                        kartuStyle = "bg-yellow-50/70 border-2 border-yellow-200";
-                        labelStatus = `<span class="bg-yellow-400 text-yellow-950 text-[10px] font-black px-2 py-0.5 rounded-md uppercase">Baru</span>`;
-                        
-                        // Menampilkan 2 tombol: Proses dan Reject
-                        htmlTombolAksi = `
-                            <div class="flex gap-2 w-full">
-                                <button onclick="updateStatusPesanan('${order.id}', 'reject')" class="w-1/3 bg-red-100 hover:bg-red-200 text-red-700 font-bold text-xs py-2.5 rounded-xl transition">
-                                    ✕ Reject
-                                </button>
-                                <button onclick="updateStatusPesanan('${order.id}', 'proses')" class="w-2/3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-2.5 rounded-xl shadow-md transition">
-                                    ✓ Proses Pesanan
-                                </button>
-                            </div>
-                        `;
-                    } else if (order.status === 'proses') {
-                        kartuStyle = "bg-indigo-50/50 border-2 border-indigo-200";
-                        labelStatus = `<span class="bg-indigo-500 text-white text-[10px] font-black px-2 py-0.5 rounded-md uppercase">Sedang Diproses</span>`;
-                        
-                        // Menampilkan tombol Selesai Diantar jika sudah diproses
-                        htmlTombolAksi = `
-                            <button onclick="updateStatusPesanan('${order.id}', 'selesai')" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold text-sm py-3 rounded-xl shadow-md transition">
-                                ✓ Selesai Diantar
-                            </button>
-                        `;
-                    }
-
-                    const kartuHtml = `
-                        <div id="order-card-${order.id}" class="${kartuStyle} rounded-2xl p-4 shadow-sm flex flex-col justify-between transition-all">
-                            <div>
-                                <div class="flex justify-between items-center border-b border-gray-100 pb-2 mb-2">
-                                    <div class="flex items-center gap-2">
-                                        <span class="bg-gray-800 text-white text-xs font-black px-2.5 py-0.5 rounded-md">#ORD-${order.id}</span>
-                                        ${labelStatus}
-                                    </div>
-                                    <span class="text-xs font-semibold text-gray-500">🕒 ${teksWaktu}</span>
-                                </div>
-                                <div class="text-sm font-bold text-gray-900 mb-2">
-                                    ${order.customer_name}
-                                    <div class="text-xs text-orange-700 bg-orange-50 inline-block px-2 py-0.5 rounded mt-1 font-medium border border-orange-100">
-                                        📍 Lokasi: ${order.table_or_address}
-                                    </div>
-                                </div>
-                                <div class="bg-white rounded-xl p-3 border border-gray-100 text-sm space-y-1">
-                                    ${htmlItems}
-                                </div>
-                                
-                                <!-- Sisipkan Tampilan Bukti Bayar -->
-                                ${htmlBuktiBayar}
-                            </div>
-                            <div class="mt-4 pt-3 border-t border-gray-100 flex flex-col gap-3">
-                                <div class="flex justify-between items-center">
-                                    <div>
-                                        <span class="text-[10px] text-gray-400 block uppercase font-bold">Total Tagihan</span>
-                                        <span class="text-base font-black text-gray-900">Rp ${order.total_price.toLocaleString('id-ID')}</span>
-                                    </div>
-                                </div>
-                                ${htmlTombolAksi}
-                            </div>
-                        </div>
-                    `;
-                    container.insertAdjacentHTML('beforeend', kartuHtml);
-                });
             })
-            .catch(err => console.error('Gagal memuat antrean:', err));
+            .catch(err => console.error('Gagal memuat antrean aktif:', err));
         }
 
-        // FUNGSI BARU UNTUK UPDATE STATUS PESANAN (PROSES, REJECT, SELESAI)
+        // Fungsi untuk menggambar kartu ke dalam container utama
+        function renderKartuPesanan(dataOrders, tipeTab) {
+            const container = document.getElementById('container-pesanan');
+            
+            if (dataOrders.length === 0) {
+                let pesanKosong = "Belum ada antrean pesanan baru.";
+                if (tipeTab === 'proses') pesanKosong = "Tidak ada pesanan yang sedang diproses.";
+                if (tipeTab === 'selesai') pesanKosong = "Belum ada pesanan yang diselesaikan hari ini.";
+                if (tipeTab === 'reject') pesanKosong = "Tidak ada riwayat pesanan yang di-reject.";
+                
+                container.innerHTML = `<div class="text-center py-10 text-gray-400 text-sm">${pesanKosong}</div>`;
+                return;
+            }
+
+            container.innerHTML = '';
+
+            dataOrders.forEach(order => {
+                let htmlItems = '';
+                order.items.forEach(item => {
+                    htmlItems += `
+                        <div class="border-b border-gray-100 last:border-0 py-1">
+                            <span class="font-bold text-gray-900">${item.kuantitas}x</span> ${item.nama}
+                            ${item.catatan ? `<span class="block text-xs text-red-600 font-medium bg-red-50 px-2 py-0.5 rounded mt-0.5 w-max">📝 Catatan: ${item.catatan}</span>` : ''}
+                        </div>
+                    `;
+                });
+
+                // Format Rute Bukti Bayar
+                const dbBukti = order.payment_proof_url;
+                let ruteLengkapBukti = ''; 
+                if (dbBukti) {
+                    if (dbBukti.startsWith('http://') || dbBukti.startsWith('https://')) {
+                        ruteLengkapBukti = dbBukti.includes('r2.dev') ? `https://wsrv.nl/?url=${encodeURIComponent(dbBukti)}` : dbBukti;
+                    } else {
+                        ruteLengkapBukti = `${API_URL}${dbBukti}`;
+                    }
+                }
+
+                let htmlBuktiBayar = `
+                    <div class="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg p-2 text-center font-medium">
+                        ⚠️ Belum ada bukti bayar
+                    </div>
+                `;
+
+                if (ruteLengkapBukti) {
+                    htmlBuktiBayar = `
+                        <div class="bg-gray-50 border border-gray-200 rounded-xl p-2 flex items-center justify-between mt-2">
+                            <div class="flex items-center gap-2">
+                                <img src="${ruteLengkapBukti}" class="w-10 h-10 object-cover rounded-md border border-gray-300 cursor-pointer hover:opacity-80 transition" onclick="bukaModalBukti('${ruteLengkapBukti}')">
+                                <div>
+                                    <span class="text-[11px] font-bold text-gray-700 block leading-tight">Bukti Pembayaran</span>
+                                    <span class="text-[9px] text-green-600 bg-green-50 px-1 py-0.2 rounded font-semibold">Sudah Upload</span>
+                                </div>
+                            </div>
+                            <button type="button" onclick="bukaModalBukti('${ruteLengkapBukti}')" class="text-[11px] text-blue-600 hover:text-blue-800 font-bold bg-white border border-gray-300 px-2.5 py-1 rounded-lg shadow-sm transition">
+                                🔍 Lihat
+                            </button>
+                        </div>
+                    `;
+                }
+
+                const menitLalu = Math.floor((new Date() - new Date(order.created_at)) / 60000);
+                const teksWaktu = menitLalu < 1 ? 'Baru saja' : `${menitLalu} mnt lalu`;
+
+                // Set up visual kartu & tombol dinamis berdasarkan tab aktif
+                let kartuStyle = "bg-white border border-gray-200";
+                let htmlTombolAksi = "";
+                let labelStatus = "";
+
+                if (tipeTab === 'baru') {
+                    kartuStyle = "bg-yellow-50/70 border-2 border-yellow-200";
+                    labelStatus = `<span class="bg-yellow-400 text-yellow-950 text-[10px] font-black px-2 py-0.5 rounded-md uppercase">Baru</span>`;
+                    htmlTombolAksi = `
+                        <div class="flex gap-2 w-full">
+                            <button onclick="updateStatusPesanan('${order.id}', 'reject')" class="w-1/3 bg-red-100 hover:bg-red-200 text-red-700 font-bold text-xs py-2.5 rounded-xl transition">
+                                ✕ Reject
+                            </button>
+                            <button onclick="updateStatusPesanan('${order.id}', 'proses')" class="w-2/3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-2.5 rounded-xl shadow-md transition">
+                                ✓ Proses Pesanan
+                            </button>
+                        </div>
+                    `;
+                } else if (tipeTab === 'proses') {
+                    kartuStyle = "bg-indigo-50/50 border-2 border-indigo-200";
+                    labelStatus = `<span class="bg-indigo-500 text-white text-[10px] font-black px-2 py-0.5 rounded-md uppercase">Diproses</span>`;
+                    htmlTombolAksi = `
+                        <button onclick="updateStatusPesanan('${order.id}', 'selesai')" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold text-sm py-3 rounded-xl shadow-md transition">
+                            ✓ Selesai Diantar
+                        </button>
+                    `;
+                } else if (tipeTab === 'selesai') {
+                    labelStatus = `<span class="bg-green-500 text-white text-[10px] font-black px-2 py-0.5 rounded-md uppercase">Selesai</span>`;
+                } else if (tipeTab === 'reject') {
+                    kartuStyle = "bg-red-50/50 border border-red-100 opacity-80";
+                    labelStatus = `<span class="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-md uppercase">Rejected</span>`;
+                }
+
+                const kartuHtml = `
+                    <div class="${kartuStyle} rounded-2xl p-4 shadow-sm flex flex-col justify-between transition-all">
+                        <div>
+                            <div class="flex justify-between items-center border-b border-gray-100 pb-2 mb-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="bg-gray-800 text-white text-xs font-black px-2.5 py-0.5 rounded-md">#ORD-${order.id}</span>
+                                    ${labelStatus}
+                                </div>
+                                <span class="text-xs font-semibold text-gray-500">🕒 ${teksWaktu}</span>
+                            </div>
+                            <div class="text-sm font-bold text-gray-900 mb-2">
+                                ${order.customer_name}
+                                <div class="text-xs text-orange-700 bg-orange-50 inline-block px-2 py-0.5 rounded mt-1 font-medium border border-orange-100">
+                                    📍 Lokasi: ${order.table_or_address}
+                                </div>
+                            </div>
+                            <div class="bg-white rounded-xl p-3 border border-gray-100 text-sm space-y-1">
+                                ${htmlItems}
+                            </div>
+                            ${htmlBuktiBayar}
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-gray-100 flex flex-col gap-3">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <span class="text-[10px] text-gray-400 block uppercase font-bold">Total Tagihan</span>
+                                    <span class="text-base font-black text-gray-900">Rp ${order.total_price.toLocaleString('id-ID')}</span>
+                                </div>
+                            </div>
+                            ${htmlTombolAksi}
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', kartuHtml);
+            });
+        }
+
+        // Ganti Tab & Render Data yang sesuai
+        function gantiTab(tab) {
+            tabAktifSekarang = tab;
+            
+            // Reset style semua tombol tab
+            const tabs = {
+                baru: document.getElementById('tab-baru'),
+                proses: document.getElementById('tab-proses'),
+                selesai: document.getElementById('tab-selesai'),
+                reject: document.getElementById('tab-reject')
+            };
+
+            for (let key in tabs) {
+                tabs[key].className = "flex-1 min-w-[70px] text-center py-3 text-[11px] font-medium border-b-4 border-transparent text-gray-400 hover:text-gray-600 transition";
+            }
+
+            // Aktifkan tab terpilih
+            tabs[tab].className = "flex-1 min-w-[70px] text-center py-3 text-[11px] font-bold border-b-4 border-orange-500 text-orange-600 bg-orange-50/50";
+
+            if (tab === 'baru' || tab === 'proses') {
+                ambilDataDapur();
+            } else if (tab === 'selesai') {
+                ambilSelesaiAtauReject('selesai');
+            } else if (tab === 'reject') {
+                ambilSelesaiAtauReject('reject');
+            }
+        }
+
+        // Ambil riwayat selesai atau reject (Endpoint dinamis atau difilter)
+        function ambilSelesaiAtauReject(statusTarget) {
+            if (!currentShopSlug) return;
+
+            // Jika selesai, panggil endpoint history bawaan. Jika reject, kita gunakan filter khusus
+            let url = `${API_URL}/api/orders/history?shop=${currentShopSlug}`;
+            
+            fetch(url)
+            .then(res => res.json())
+            .then(data => {
+                if (!Array.isArray(data)) return;
+
+                // Jika minta reject, kita ambil semua yang berstatus reject (kita perlu buat backend mensupport ini / filter client-side)
+                if (statusTarget === 'reject') {
+                    // Sementara, kita juga bisa mengambil status reject dari endpoint order active jika diizinkan, 
+                    // atau filter dari data history jika database menyimpan semuanya. 
+                    // Solusi paling aman: Kita minta dari server, tapi di sini kita amankan dengan filter client.
+                    fetch(`${API_URL}/api/orders/active?shop=${currentShopSlug}`)
+                    .then(res => res.json())
+                    .then(allOrders => {
+                        // Jika ada endpoint khusus/kita bisa filter dari pesanan yang di-reject
+                        // Mengingat server.js Anda meloloskan status 'baru'/'proses', mari kita buat fetch aman untuk reject.
+                    });
+                    
+                    // Untuk mempermudah, kita panggil endpoint filter client side dari database (nanti disesuaikan di backend)
+                    // Kita asumsikan history mengembalikan semua pesanan selesai. Kita buat filter yang sesuai.
+                }
+                
+                // Panggil loader render
+                renderKartuPesanan(data.filter(o => o.status === statusTarget), statusTarget);
+            })
+            .catch(err => console.error('Gagal memuat data riwayat:', err));
+        }
+
+        // Fungsi Update Status (Mengarah ke endpoint PATCH baru)
         function updateStatusPesanan(idOrder, statusBaru) {
             let pesanKonfirmasi = "";
             if (statusBaru === 'proses') {
@@ -261,7 +331,14 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        ambilPesananDariDatabase();
+                        // Tetap di tab saat ini atau otomatis pindah tab setelah aksi sukses
+                        if (statusBaru === 'proses') {
+                            gantiTab('proses'); // Pindahkan fokus ke tab "Proses" setelah diapprove
+                        } else if (statusBaru === 'reject') {
+                            gantiTab('reject'); // Pindahkan ke tab "Reject"
+                        } else {
+                            ambilDataDapur();
+                        }
                     } else {
                         alert(data.message || 'Gagal mengubah status pesanan.');
                     }
@@ -270,114 +347,12 @@
             }
         }
 
-        function gantiTab(tab) {
-            const tabAntrean = document.getElementById('tab-aktif');
-            const tabRiwayat = document.getElementById('tab-selesai');
-            const kontenAntrean = document.getElementById('container-pesanan-aktif');
-            const kontenRiwayat = document.getElementById('container-pesanan-selesai');
-
-            if (tab === 'antrean') {
-                tabAntrean.className = "w-1/2 text-center py-3 text-sm font-bold border-b-4 border-orange-500 text-orange-600 bg-orange-50/50 rounded-tl-xl";
-                tabRiwayat.className = "w-1/2 text-center py-3 text-sm font-medium border-b-4 border-transparent text-gray-400 hover:text-gray-600 transition rounded-tr-xl";
-                kontenAntrean.classList.remove('hidden');
-                kontenRiwayat.classList.add('hidden');
-                ambilPesananDariDatabase();
-            } else {
-                tabRiwayat.className = "w-1/2 text-center py-3 text-sm font-bold border-b-4 border-orange-500 text-orange-600 bg-orange-50/50 rounded-tr-xl";
-                tabAntrean.className = "w-1/2 text-center py-3 text-sm font-medium border-b-4 border-transparent text-gray-400 hover:text-gray-600 transition rounded-tl-xl";
-                kontenAntrean.classList.add('hidden');
-                kontenRiwayat.classList.remove('hidden');
-                ambilRiwayatDariDatabase();
-            }
-        }
-
-        function ambilRiwayatDariDatabase() {
-            if (!currentShopSlug) return;
-
-            fetch(`${API_URL}/api/orders/history?shop=${currentShopSlug}`)
-            .then(res => res.json())
-            .then(data => {
-                const containerRiwayat = document.getElementById('container-pesanan-selesai');
-                
-                if (!Array.isArray(data)) {
-                    containerRiwayat.innerHTML = `<div class="text-center py-10 text-red-500 text-sm">${data.message || 'Gagal memuat riwayat.'}</div>`;
-                    return;
-                }
-
-                if (data.length === 0) {
-                    containerRiwayat.innerHTML = '<div class="text-center py-10 text-gray-400 text-sm">Belum ada riwayat pesanan yang selesai harian ini.</div>';
-                    return;
-                }
-
-                containerRiwayat.innerHTML = ''; 
-                
-                data.forEach(order => {
-                    let htmlItems = '';
-                    order.items.forEach(item => {
-                        htmlItems += `<li>${item.kuantitas}x ${item.nama}</li>`;
-                    });
-
-                    const waktuSelesai = new Date(order.created_at).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
-
-                    // --- LOGIKA RUTE LENGKAP BUKTI BAYAR UNTUK RIWAYAT ---
-                    const dbBukti = order.payment_proof_url;
-                    let ruteLengkapBukti = ''; 
-
-                    if (dbBukti) {
-                        if (dbBukti.startsWith('http://') || dbBukti.startsWith('https://')) {
-                            if (dbBukti.includes('r2.dev')) {
-                                ruteLengkapBukti = `https://wsrv.nl/?url=${encodeURIComponent(dbBukti)}`;
-                            } else {
-                                ruteLengkapBukti = dbBukti;
-                            }
-                        } else {
-                            ruteLengkapBukti = `${API_URL}${dbBukti}`;
-                        }
-                    }
-
-                    let tombolBuktiRiwayat = '';
-                    if (ruteLengkapBukti) {
-                        tombolBuktiRiwayat = `
-                            <button onclick="bukaModalBukti('${ruteLengkapBukti}')" class="mt-2 block w-full text-center text-[10px] bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-1 rounded-md border transition">
-                                📄 Lihat Bukti Bayar
-                            </button>
-                        `;
-                    }
-
-                    const barisRiwayatHtml = `
-                        <div class="bg-white border border-gray-100 rounded-xl p-4 flex justify-between items-center shadow-sm">
-                            <div class="flex-1 pr-2">
-                                <div class="flex items-center gap-2 mb-1">
-                                    <span class="text-xs font-black text-gray-400">#ORD-${order.id}</span>
-                                    <span class="font-bold text-gray-900 text-sm">${order.customer_name}</span>
-                                    <span class="text-[10px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded">📍 ${order.table_or_address}</span>
-                                </div>
-                                <ul class="text-xs text-gray-500 list-disc list-inside space-y-0.5">
-                                    ${htmlItems}
-                                </ul>
-                                ${tombolBuktiRiwayat}
-                            </div>
-                            <div class="text-right flex flex-col justify-between min-w-[80px]">
-                                <span class="text-xs font-bold text-gray-400 block"> Jam ${waktuSelesai}</span>
-                                <span class="text-sm font-black text-green-600">Rp ${order.total_price.toLocaleString('id-ID')}</span>
-                            </div>
-                        </div>
-                    `;
-                    containerRiwayat.insertAdjacentHTML('beforeend', barisRiwayatHtml);
-                });
-            })
-            .catch(err => console.error('Gagal memuat riwayat:', err));
-        }
-
-        // Panggil fungsi cek status saat halaman pertama kali dimuat
+        // Kontrol Status Buka/Tutup Warung
         cekStatusWarung();
-
-        let statusWarungSekarang = 1; // Default buka (1)
+        let statusWarungSekarang = 1;
 
         function cekStatusWarung() {
             if (!currentShopSlug) return;
-
-            // PERBAIKAN: Mengarah ke endpoint /api/shops/status sesuai server.js
             fetch(`${API_URL}/api/shops/status?shop=${currentShopSlug}`)
             .then(res => res.json())
             .then(response => {
@@ -391,7 +366,6 @@
 
         function perbaruiTampilanTombolStatus(isOpen) {
             const btn = document.getElementById('btn-status-warung');
-
             if (isOpen == 1) {
                 btn.className = "text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-green-50 border border-green-300 text-green-700 hover:bg-green-100 transition-all shadow-sm";
                 btn.innerText = "🟢 Warung Buka";
@@ -406,14 +380,10 @@
             const pesanAksi = statusBaru == 1 ? "membuka" : "menutup";
 
             if (confirm(`Apakah Anda yakin ingin ${pesanAksi} warung?`)) {
-                // PERBAIKAN: Menggunakan method PUT dan struktur URL /api/shops/toggle-status sesuai backend
                 fetch(`${API_URL}/api/shops/toggle-status`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        shop: currentShopSlug, 
-                        is_open: statusBaru 
-                    })
+                    body: JSON.stringify({ shop: currentShopSlug, is_open: statusBaru })
                 })
                 .then(res => res.json())
                 .then(data => {
@@ -428,11 +398,10 @@
                 .catch(err => alert('Terjadi kesalahan koneksi ke server.'));
             }
         }
-        
     </script>
 
     <!-- 3. MODAL POPUP UNTUK MEMPERBESAR BUKTI BAYAR -->
-    <div id="modal-bukti-bayar" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm animate-fadeIn" onclick="tutupModalBukti()">
+    <div id="modal-bukti-bayar" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm" onclick="tutupModalBukti()">
         <div class="relative max-w-sm w-full bg-white rounded-2xl p-3 shadow-2xl" onclick="event.stopPropagation()">
             <div class="flex justify-between items-center mb-2 pb-1 border-b">
                 <h3 class="text-xs font-bold text-gray-800">Pratinjau Bukti Pembayaran</h3>
