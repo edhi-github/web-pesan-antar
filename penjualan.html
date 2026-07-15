@@ -177,8 +177,20 @@
                     `;
                 }
 
-                const menitLalu = Math.floor((new Date() - new Date(order.created_at)) / 60000);
-                const teksWaktu = menitLalu < 1 ? 'Baru saja' : `${menitLalu} mnt lalu`;
+                // Untuk tab selesai/reject, kita gunakan updated_at. 
+                // Sedangkan untuk tab baru/proses, kita gunakan created_at agar tahu berapa lama antrean berjalan.
+                const waktuAcuan = (tipeTab === 'selesai' || tipeTab === 'reject') 
+                    ? (order.updated_at || order.created_at) 
+                    : order.created_at;
+
+                const menitLalu = Math.floor((new Date() - new Date(waktuAcuan)) / 60000);
+                let teksWaktu = menitLalu < 1 ? 'Baru saja' : `${menitLalu} mnt lalu`;
+
+                // Khusus untuk riwayat selesai & reject, akan lebih informatif jika menampilkan jam eksekusinya langsung (misal: "Selesai jam 14.25")
+                if (tipeTab === 'selesai' || tipeTab === 'reject') {
+                    const jamFormat = new Date(waktuAcuan).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                    teksWaktu = `Jam ${jamFormat}`;
+                }
 
                 // Set up visual kartu & tombol dinamis berdasarkan tab aktif
                 let kartuStyle = "bg-white border border-gray-200";
