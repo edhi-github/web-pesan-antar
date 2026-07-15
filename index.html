@@ -221,102 +221,7 @@
         }
 
 
-        function muatProdukDariDatabase() {
-            const containerMenu = document.getElementById('container-menu');
-            fetch(`${API_URL}/api/products?shop=${currentShopSlug}`)
-                .then(res => res.json())
-                .then(response => {
-                    
-                    // Membaca status toko dari root response yang telah kita perbaiki di backend
-                    if (response.hasOwnProperty('is_open')) {
-                        updateStatusTokoUI(response.is_open);
-                    } else if (response.data && response.data.length > 0 && response.data[0].hasOwnProperty('shop_status')) {
-                        updateStatusTokoUI(Number(response.data[0].shop_status) === 1);
-                    }
-
-                    if (!response.success || !response.data || response.data.length === 0) {
-                        containerMenu.innerHTML = '<div class="text-center py-10 text-gray-400 text-sm">Belum ada menu yang tersedia saat ini.</div>';
-                        return;
-                    }
-
-                    containerMenu.innerHTML = ''; 
-
-                    response.data.forEach(produk => {
-                        const dbId = produk.id;
-                        const dbNama = produk.name || produk.nama;
-                        const dbHarga = produk.price || produk.harga;
-                        const dbDeskripsi = produk.description || produk.deskripsi || '';
-                        const dbKategori = produk.category || produk.kategori || 'Menu';
-                        const dbFoto = produk.image_url || produk.foto;
-
-                        // Produk tersedia HANYA JIKA item_available dan Toko dalam keadaan Buka
-                        const tersedia = (produk.is_available !== 0 && produk.is_available !== '0' && produk.is_available !== false) && isShopOpen;
-
-                        let ruteLengkapFoto = 'https://via.placeholder.com/150'; 
-
-                        if (dbFoto) {
-                            if (dbFoto.startsWith('http://') || dbFoto.startsWith('https://')) {
-                                if (dbFoto.includes('r2.dev')) {
-                                    ruteLengkapFoto = `https://wsrv.nl/?url=${encodeURIComponent(dbFoto)}`;
-                                } else {
-                                    ruteLengkapFoto = dbFoto;
-                                }
-                            } else {
-                                ruteLengkapFoto = `${API_URL}${dbFoto}`;
-                            }
-                        }
-                        
-                        let tombolHtml = '';
-                        let styleKartuHabis = '';
-                        let styleFotoHabis = '';
-
-                        if (tersedia) {
-                            tombolHtml = `
-                                <button onclick="tambahItem('${dbId}', '${dbNama.replace(/'/g, "\\'")}', ${dbHarga})" 
-                                        class="bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition active:scale-95">
-                                    + Tambah
-                                </button>
-                            `;
-                        } else {
-                            styleKartuHabis = 'opacity-60 relative select-none';
-                            styleFotoHabis = 'grayscale';
-                            // Tampilkan label berbeda jika penyebabnya toko tutup global
-                            const labelKeterangan = !isShopOpen ? 'Toko Tutup' : 'Kosong';
-                            tombolHtml = `
-                                <span class="text-xs font-bold text-red-500 bg-red-50 px-2 py-1 rounded-md border border-red-100">
-                                    ${labelKeterangan}
-                                </span>
-                            `;
-                        }
-
-                        const kartuMenuHtml = `
-                            <div class="bg-white rounded-xl p-3 shadow-sm border border-gray-100 flex gap-3 ${styleKartuHabis}">
-                                ${!tersedia ? '<div class="absolute inset-0 bg-gray-50 bg-opacity-10 rounded-xl z-0"></div>' : ''}
-                                <img src="${ruteLengkapFoto}" alt="${dbNama}" class="w-20 h-20 object-cover rounded-lg flex-shrink-0 bg-gray-100 z-10 ${styleFotoHabis}">
-                                <div class="flex-1 flex flex-col justify-between z-10">
-                                    <div>
-                                        <div class="flex justify-between items-start">
-                                            <h3 class="font-semibold text-sm ${tersedia ? 'text-gray-900' : 'text-gray-400 line-through'}">${dbNama}</h3>
-                                            <span class="text-[9px] bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded font-bold uppercase tracking-wide">${dbKategori}</span>
-                                        </div>
-                                        <p class="text-xs text-gray-500 mt-0.5 line-clamp-2">${dbDeskripsi}</p>
-                                    </div>
-                                    <div class="flex justify-between items-center mt-2">
-                                        <span class="text-sm font-bold ${tersedia ? 'text-gray-900' : 'text-gray-400'}">Rp ${Number(dbHarga).toLocaleString('id-ID')}</span>
-                                        ${tombolHtml}
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                        containerMenu.insertAdjacentHTML('beforeend', kartuMenuHtml);
-                    });
-                })
-                .catch(err => {
-                    console.error('Gagal mengambil data menu:', err);
-                    containerMenu.innerHTML = '<div class="text-center py-10 text-red-500 text-sm">Gagal terhubung ke server database menu.</div>';
-                });
-        }
-
+        
         function tambahItem(productIdAsli, nama, harga) {
             if(!isShopOpen) {
                 alert("Tidak dapat menambah item. Warung sedang tutup!");
@@ -409,10 +314,107 @@
             document.getElementById('order-modal').classList.add('hidden');
         }
 
+        function muatProdukDariDatabase() {
+            const containerMenu = document.getElementById('container-menu');
+            fetch(`${API_URL}/api/products?shop=${currentShopSlug}`)
+                .then(res => res.json())
+                .then(response => {
+                    
+                    if (response.hasOwnProperty('is_open')) {
+                        updateStatusTokoUI(response.is_open);
+                    } else if (response.data && response.data.length > 0 && response.data[0].hasOwnProperty('shop_status')) {
+                        updateStatusTokoUI(Number(response.data[0].shop_status) === 1);
+                    }
+
+                    if (!response.success || !response.data || response.data.length === 0) {
+                        containerMenu.innerHTML = '<div class="text-center py-10 text-gray-400 text-sm">Belum ada menu yang tersedia saat ini.</div>';
+                        return;
+                    }
+
+                    containerMenu.innerHTML = ''; 
+
+                    response.data.forEach(produk => {
+                        const dbId = produk.id;
+                        const dbNama = produk.name || produk.nama;
+                        const dbHarga = produk.price || produk.harga;
+                        const dbDeskripsi = produk.description || produk.deskripsi || '';
+                        const dbKategori = produk.category || produk.kategori || 'Menu';
+                        const dbFoto = produk.image_url || produk.foto;
+                        const dbStok = produk.stock !== undefined ? produk.stock : 0; // Sisa Stok
+
+                        // Produk tersedia HANYA JIKA item_available, stok > 0, dan Toko dalam keadaan Buka
+                        const tersedia = (produk.is_available !== 0 && produk.is_available !== '0' && produk.is_available !== false) && dbStok > 0 && isShopOpen;
+
+                        let ruteLengkapFoto = 'https://via.placeholder.com/150'; 
+
+                        if (dbFoto) {
+                            if (dbFoto.startsWith('http://') || dbFoto.startsWith('https://')) {
+                                if (dbFoto.includes('r2.dev')) {
+                                    ruteLengkapFoto = `https://wsrv.nl/?url=${encodeURIComponent(dbFoto)}`;
+                                } else {
+                                    ruteLengkapFoto = dbFoto;
+                                }
+                            } else {
+                                ruteLengkapFoto = `${API_URL}${dbFoto}`;
+                            }
+                        }
+                        
+                        let tombolHtml = '';
+                        let styleKartuHabis = '';
+                        let styleFotoHabis = '';
+
+                        if (tersedia) {
+                            tombolHtml = `
+                                <div class="flex flex-col items-end gap-1">
+                                    <span class="text-[10px] text-gray-400 font-semibold">Sisa Stok: ${dbStok}</span>
+                                    <button onclick="tambahItem('${dbId}', '${dbNama.replace(/'/g, "\\'")}', ${dbHarga})" 
+                                            class="bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition active:scale-95">
+                                        + Tambah
+                                    </button>
+                                </div>
+                            `;
+                        } else {
+                            styleKartuHabis = 'opacity-60 relative select-none';
+                            styleFotoHabis = 'grayscale';
+                            const labelKeterangan = !isShopOpen ? 'Toko Tutup' : 'Habis';
+                            tombolHtml = `
+                                <span class="text-xs font-bold text-red-500 bg-red-50 px-2 py-1 rounded-md border border-red-100">
+                                    ${labelKeterangan}
+                                </span>
+                            `;
+                        }
+
+                        const kartuMenuHtml = `
+                            <div class="bg-white rounded-xl p-3 shadow-sm border border-gray-100 flex gap-3 ${styleKartuHabis}">
+                                ${!tersedia ? '<div class="absolute inset-0 bg-gray-50 bg-opacity-10 rounded-xl z-0"></div>' : ''}
+                                <img src="${ruteLengkapFoto}" alt="${dbNama}" class="w-20 h-20 object-cover rounded-lg flex-shrink-0 bg-gray-100 z-10 ${styleFotoHabis}">
+                                <div class="flex-1 flex flex-col justify-between z-10">
+                                    <div>
+                                        <div class="flex justify-between items-start">
+                                            <h3 class="font-semibold text-sm ${tersedia ? 'text-gray-900' : 'text-gray-400 line-through'}">${dbNama}</h3>
+                                            <span class="text-[9px] bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded font-bold uppercase tracking-wide">${dbKategori}</span>
+                                        </div>
+                                        <p class="text-xs text-gray-500 mt-0.5 line-clamp-2">${dbDeskripsi}</p>
+                                    </div>
+                                    <div class="flex justify-between items-center mt-2">
+                                        <span class="text-sm font-bold ${tersedia ? 'text-gray-900' : 'text-gray-400'}">Rp ${Number(dbHarga).toLocaleString('id-ID')}</span>
+                                        ${tombolHtml}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        containerMenu.insertAdjacentHTML('beforeend', kartuMenuHtml);
+                    });
+                })
+                .catch(err => {
+                    console.error('Gagal mengambil data menu:', err);
+                    containerMenu.innerHTML = '<div class="text-center py-10 text-red-500 text-sm">Gagal terhubung ke server database menu.</div>';
+                });
+        }
+
         function kirimPesananKeSistem(event) {
             event.preventDefault();
 
-            // 1. Cek validasi lokal terlebih dahulu
             if (!isShopOpen) {
                 alert("Gagal memproses. Warung sedang tutup!");
                 return;
@@ -431,64 +433,54 @@
                 return;
             }
 
-            // Ubah status tombol sementara untuk mencegah double click
             btnSubmit.disabled = true;
             btnSubmit.innerText = "⏳ Memeriksa Ketersediaan Menu...";
 
-            // 2. VALIDASI REAL-TIME DATA TOKO & PRODUK LANGSUNG KE SERVER
+            // VALIDASI REAL-TIME DATA TOKO & STOK PRODUK LANGSUNG KE SERVER
             fetch(`${API_URL}/api/products?shop=${currentShopSlug}`)
             .then(res => res.json())
             .then(response => {
-                // A. Validasi status warung global dari response terbaru
                 if (response.hasOwnProperty('is_open')) {
                     const isLatestOpen = Number(response.is_open) === 1;
                     if (!isLatestOpen) {
-                        alert("🔒 Mohon maaf, warung baru saja TUTUP beberapa saat lalu. Pesanan Anda tidak dapat diproses.");
+                        alert("🔒 Mohon maaf, warung baru saja TUTUP beberapa saat lalu.");
                         updateStatusTokoUI(0); 
                         tutupModalPesanan();
                         return;
                     }
                 }
 
-                // B. Validasi ketersediaan menu makanan satu-per-satu yang ada di dalam keranjang
                 const daftarProdukServer = response.data || [];
                 let adaMenuHabis = false;
                 let namaMenuHabis = [];
 
+                // Validasi Kecukupan Sisa Stok Menu
                 keranjang.forEach(itemBaru => {
-                    // Cari kecocokan data produk lokal di keranjang dengan data teranyar dari database server
                     const produkTerbaruServer = daftarProdukServer.find(p => String(p.id) === String(itemBaru.product_id));
                     
                     if (produkTerbaruServer) {
-                        const masihTersedia = produkTerbaruServer.is_available !== 0 && 
-                                              produkTerbaruServer.is_available !== '0' && 
-                                              produkTerbaruServer.is_available !== false;
+                        const sisaStokServer = produkTerbaruServer.stock !== undefined ? parseInt(produkTerbaruServer.stock) : 0;
+                        const masihTersedia = produkTerbaruServer.is_available !== 0 && sisaStokServer > 0;
                         
                         if (!masihTersedia) {
                             adaMenuHabis = true;
                             namaMenuHabis.push(itemBaru.nama);
                         }
                     } else {
-                        // Jika produk sudah dihapus dari database oleh penjual
                         adaMenuHabis = true;
                         namaMenuHabis.push(itemBaru.nama);
                     }
                 });
 
-                // Jika ditemukan ada menu yang telah dikosongkan oleh penjual
                 if (adaMenuHabis) {
-                    alert(`⚠️ Gagal Mengirim! Menu berikut telah HABIS atau ditiadakan oleh penjual:\n- ${namaMenuHabis.join('\n- ')}\n\nSistem akan memperbarui menu. Silakan pilih menu alternatif lainnya.`);
-                    
-                    // Render ulang menu utama pembeli agar status "Kosong" langsung muncul di UI utama
+                    alert(`⚠️ Gagal Mengirim! Menu berikut telah HABIS beberapa saat lalu:\n- ${namaMenuHabis.join('\n- ')}\n\nSilakan pilih menu alternatif lainnya.`);
                     muatProdukDariDatabase();
-                    
-                    // Reset tombol submit ke sedia kala
                     btnSubmit.disabled = false;
                     btnSubmit.innerText = "🚀 Kirim Pesanan ke Penjual";
                     return; 
                 }
 
-                // 3. JIKA WARUNG BUKA & SEMUA MENU TERSEDIA, LANJUTKAN PROSES CHECKOUT
+                // JIKA AMAN, KIRIM KE API /api/orders
                 btnSubmit.innerText = "⏳ Sedang Mengirim Pesanan...";
 
                 const nama = document.getElementById('cust-name').value;
@@ -516,14 +508,14 @@
                 });
             })
             .then(res => {
-                if (!res) return; // Jika terhenti di validasi atas, bypass block ini
+                if (!res) return;
                 return res.json();
             })
             .then(data => {
                 if (!data) return;
 
                 if (data.success) {
-                    alert(`Terima kasih! Pesanan & Bukti Pembayaran Berhasil Dikirim (ID: #ORD-${data.order_id})`);
+                    alert(`Terima kasih! Pesanan Berhasil Dikirim (ID: #ORD-${data.order_id})`);
                     keranjang = [];
                     hitungTotal();
                     tutupModalPesanan();
@@ -537,7 +529,7 @@
             })
             .catch(error => {
                 console.error('Error Checkout:', error);
-                alert('Tidak bisa terhubung ke server backend. Pastikan server aktif!');
+                alert('Tidak bisa terhubung ke server backend atau stok habis.');
                 btnSubmit.disabled = false;
                 btnSubmit.innerText = "🚀 Kirim Pesanan ke Penjual";
             });

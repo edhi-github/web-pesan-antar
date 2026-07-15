@@ -49,6 +49,18 @@
                     </div>
                 </div>
 
+                <!-- Kategori & Harga -->
+                <div class="grid grid-cols-2 gap-3">
+                    ...
+                </div>
+
+                <!-- Estimasi Stok Produk (TAMBAHAN BARU) -->
+                <div>
+                    <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Estimasi Stok Awal</label>
+                    <input type="number" id="stok" required value="20" placeholder="Default: 20" 
+                        class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-orange-500 focus:outline-none transition">
+                </div>
+
                 <!-- Deskripsi Menu -->
                 <div>
                     <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Deskripsi Menu (Opsional)</label>
@@ -157,7 +169,26 @@
         function pilihKamera() { tutupPilihanMedia(); document.getElementById('foto_kamera').click(); }
         function pilihGaleri() { tutupPilihanMedia(); document.getElementById('foto_galeri').click(); }
 
-        // FUNGSI UTAMA LOAD DATA EDIT
+        
+
+        function previewFoto(input) {
+            const Skinner = document.getElementById('tempat-instruksi');
+            const kotakPreview = document.getElementById('kotak-preview');
+            const imgPreview = document.getElementById('img-preview');
+
+            if (input.files && input.files[0]) {
+                activeFile = input.files[0];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imgPreview.src = e.target.result;
+                    Skinner.classList.add('hidden');
+                    kotakPreview.classList.remove('hidden');
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        // FUNGSI UTAMA LOAD DATA EDIT (DENGAN MEMBACA STOK)
         function loadProductData(id) {
             fetch(`${API_BASE}/${id}`)
                 .then(res => {
@@ -165,13 +196,13 @@
                     return res.json();
                 })
                 .then(response => {
-                    // Penyesuaian membaca objek single data produk dari format umum server API Anda
                     const produk = response.data || response;
                     
                     document.getElementById('nama_produk').value = produk.name || produk.nama || produk.nama_produk || '';
                     document.getElementById('kategori').value = produk.category || produk.kategori || 'Makanan';
                     document.getElementById('harga').value = produk.price || produk.harga || '';
                     document.getElementById('deskripsi').value = produk.description || produk.deskripsi || '';
+                    document.getElementById('stok').value = produk.stock !== undefined ? produk.stock : 20; // Load Stock
                     
                     const dbFoto = produk.image_url || produk.foto || produk.foto_produk;
                     if (dbFoto) {
@@ -196,24 +227,7 @@
                 });
         }
 
-        function previewFoto(input) {
-            const Skinner = document.getElementById('tempat-instruksi');
-            const kotakPreview = document.getElementById('kotak-preview');
-            const imgPreview = document.getElementById('img-preview');
-
-            if (input.files && input.files[0]) {
-                activeFile = input.files[0];
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    imgPreview.src = e.target.result;
-                    Skinner.classList.add('hidden');
-                    kotakPreview.classList.remove('hidden');
-                }
-                reader.readAsDataURL(input.files[0]);
-            }
-        }
-
-        // FUNGSI MULTIPART FORM DATA SUBMIT
+        // FUNGSI MULTIPART FORM DATA SUBMIT (DENGAN MENGIRIMKAN STOK)
         function simpanProduk(event) {
             event.preventDefault();
 
@@ -234,24 +248,23 @@
 
             const formData = new FormData();
             formData.append('shop', shopSlug); 
-            formData.append('name', document.getElementById('nama_produk').value); // disamakan ke field API database umum ('name')
+            formData.append('name', document.getElementById('nama_produk').value);
             formData.append('category', document.getElementById('kategori').value);
             formData.append('price', document.getElementById('harga').value);
             formData.append('description', document.getElementById('deskripsi').value);
+            formData.append('stock', document.getElementById('stok').value); // Kirim parameter stock
             
             if (activeFile) {
-                formData.append('image', activeFile); // disamakan ke field upload API utama
+                formData.append('image', activeFile);
             }
 
-            // PENTING: Beberapa platform server PHP/Node Native tidak mendukung metode PUT bawaan Form Data Multipart.
-            // Kita gunakan taktik penambahan field _method atau mengirimkan via POST/PUT bersyarat
             let url = API_BASE;
             let method = 'POST';
 
             if (productId) {
                 url = `${API_BASE}/${productId}`;
-                method = 'POST'; // Kita bisa gunakan POST dan lampirkan method spoofing jika backend membutuhkannya
-                formData.append('_method', 'PUT'); // Fallback spoofing untuk backend
+                method = 'POST';
+                formData.append('_method', 'PUT');
             }
 
             fetch(url, {
@@ -266,7 +279,6 @@
             })
             .then(data => {
                 alert('Sukses! Data menu berhasil disimpan.');
-                // Kembalikan ke panel dapur kita yang sebelumnya
                 window.location.href = `admin.html?shop=${shopSlug}`;
             })
             .catch(err => {

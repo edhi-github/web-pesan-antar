@@ -72,7 +72,7 @@
             muatProdukAdmin();
         });
 
-        // 1. FUNGSI MEMBACA PRODUK BERDASARKAN TENANT/SHOP
+        // 1. FUNGSI MEMBACA PRODUK BERDASARKAN TENANT/SHOP (DIUPDATE STOK UI)
         function muatProdukAdmin() {
             const containerAdmin = document.getElementById('admin-menu-list');
 
@@ -92,6 +92,7 @@
                         const dbHarga = produk.price || produk.harga;
                         const dbKategori = produk.category || produk.kategori || 'Menu';
                         const dbFoto = produk.image_url || produk.foto;
+                        const dbStok = produk.stock !== undefined ? produk.stock : 0;
 
                         let ruteFoto = 'https://via.placeholder.com/150'; 
 
@@ -107,7 +108,8 @@
                             }
                         }
 
-                        const tersedia = (produk.is_available !== 0 && produk.is_available !== '0' && produk.is_available !== false);
+                        // Produk habis jika is_available = 0 ATAU stock = 0
+                        const tersedia = (produk.is_available !== 0 && produk.is_available !== '0' && produk.is_available !== false) && dbStok > 0;
                         
                         let tombolAksiHtml = '';
                         if (tersedia) {
@@ -133,10 +135,17 @@
                                     <div class="min-w-0 flex-1">
                                         <h3 class="font-semibold text-sm truncate ${tersedia ? 'text-gray-900' : 'text-gray-400 line-through'}">${dbNama}</h3>
                                         <p class="text-xs text-gray-500 truncate">Rp ${Number(dbHarga).toLocaleString('id-ID')} · <span class="text-orange-600 font-medium">${dbKategori}</span></p>
+                                        
+                                        <!-- INPUT STOK CEPAT DI PANEL UTAMA -->
+                                        <div class="flex items-center gap-1 mt-1 text-xs">
+                                            <span class="text-gray-500">Stok:</span>
+                                            <input type="number" value="${dbStok}" onchange="updateStokLangsung('${dbId}', this.value)" 
+                                                class="w-12 border border-gray-300 rounded px-1 py-0.5 text-center text-gray-700 focus:border-orange-500 focus:outline-none">
+                                        </div>
                                     </div>
                                 </div>
                                 
-                                <!-- KELOMPOK TOMBOL AKSI (STATUS STOK & EDIT) -->
+                                <!-- KELOMPOK TOMBOL AKSI -->
                                 <div class="flex items-center gap-2 flex-shrink-0">
                                     ${tombolAksiHtml}
                                     <a href="tambah-produk.html?shop=${currentShopSlug}&id=${dbId}" 
@@ -153,6 +162,56 @@
                     console.error('Gagal memuat panel admin:', err);
                     containerAdmin.innerHTML = '<div class="text-center py-10 text-red-500 text-sm">Gagal terhubung ke server.</div>';
                 });
+        }
+
+        // FUNGSI UPDATE STOK LANGSUNG DARI INPUTAN
+        function updateStokLangsung(productId, stockValue) {
+            fetch(`${API_URL}/api/products/${productId}/stock`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ stock: stockValue })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    muatProdukAdmin();
+                } else {
+                    alert('Gagal mengubah stok: ' + data.message);
+                }
+            })
+            .catch(err => {
+                console.error('Error saat update stok:', err);
+            });
+        }
+
+        // 2. FUNGSI TEMBAK PERUBAHAN STATUS KE BACKEND
+        function ubahStatusStok(productId, statusBaru) {
+            // Jika diset ke "Tersedia" kembali, default-kan stok kembali minimal jadi 20 jika tadinya 0
+            const inputStok = statusBaru === 1 ? 20 : 0;
+            
+            fetch(`${API_URL}/api/products/${productId}/stock`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ 
+                    stock: inputStok
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    muatProdukAdmin();
+                } else {
+                    alert('Gagal mengubah status: ' + data.message);
+                }
+            })
+            .catch(err => {
+                console.error('Error saat update status:', err);
+                alert('Gagal tersambung ke server untuk mengubah stok.');
+            });
         }
 
         // 2. FUNGSI TEMBAK PERUBAHAN STATUS KE BACKEND
