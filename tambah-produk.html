@@ -12,7 +12,8 @@
     <div class="max-w-md mx-auto min-h-screen bg-white shadow-md flex flex-col justify-between">
         <!-- HEADER -->
         <header class="p-4 border-b border-gray-200 flex items-center gap-3">
-            <a id="link-kembali-admin" href="admin.html" class="text-gray-500 hover:text-gray-700 text-xl font-bold">⬅️</a>
+            <!-- Diubah default ID tujuannya ke admin-dapur.html / panel dapur sebelumnya -->
+            <a id="link-kembali-admin" href="#" class="text-gray-500 hover:text-gray-700 text-xl font-bold">⬅️</a>
             <div>
                 <h1 id="title-page" class="text-base font-black text-gray-900">MANAJEMEN MENU</h1>
                 <p id="desc-page" class="text-xs text-gray-500">Tambah item produk/makanan baru</p>
@@ -55,25 +56,20 @@
                         class="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm focus:border-orange-500 focus:outline-none transition"></textarea>
                 </div>
 
-                <!-- Pilihan Upload Gambar Manuall -->
+                <!-- Pilihan Upload Gambar Manual -->
                 <div>
                     <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Foto Produk</label>
                     
-                    <!-- Area Klik untuk memicu Pilihan -->
                     <div onclick="bukaPilihanMedia()" class="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center bg-gray-50 hover:bg-gray-100 transition cursor-pointer relative">
-                        
-                        <!-- Input File Tersembunyi -->
                         <input type="file" id="foto_galeri" accept="image/*" onchange="previewFoto(this)" class="hidden">
                         <input type="file" id="foto_kamera" accept="image/*" capture="environment" onchange="previewFoto(this)" class="hidden">
                         
-                        <!-- Tampilan Default Sebelum Upload -->
                         <div id="tempat-instruksi">
                             <span class="text-2xl block">📸</span>
                             <span class="text-xs text-gray-500 font-medium block mt-1">Ketuk untuk pilih Foto / Kamera</span>
                             <span class="text-[10px] text-gray-400 block">(Format: JPG, PNG, WEBP)</span>
                         </div>
 
-                        <!-- Kotak Preview Foto -->
                         <div id="kotak-preview" class="hidden flex flex-col items-center">
                             <img id="img-preview" src="#" alt="Preview" class="max-h-40 rounded-lg object-cover mb-2 shadow-sm">
                             <span class="text-xs text-orange-600 font-bold">Ganti Foto / Ambil Ulang</span>
@@ -89,7 +85,7 @@
         </main>
     </div>
 
-    <!-- MODAL / MENU POP-UP PILIHAN MEDIA -->
+    <!-- MODAL PILIHAN MEDIA -->
     <div id="modal-opsi" class="fixed inset-0 bg-black/50 z-50 flex items-end justify-center hidden opacity-0 transition-opacity duration-200">
         <div class="bg-white w-full max-w-md rounded-t-2xl p-5 space-y-4 shadow-xl transform translate-y-full transition-transform duration-200">
             <div class="text-center">
@@ -114,21 +110,21 @@
 
     <!-- SCRIPT LOGIK INTERAKSI -->
     <script>
+        // Gunakan API URL dari config.js secara fleksibel
         const API_BASE = `${API_URL}/api/products`;        
         const urlParams = new URLSearchParams(window.location.search);
         const productId = urlParams.get('id');
         const currentShopSlug = urlParams.get('shop');
         
         const shopSlug = currentShopSlug || localStorage.getItem('current_shop_slug');
-
-        // Variabel global pelacak file aktif yang akan dikirim
         let activeFile = null;
 
         document.addEventListener('DOMContentLoaded', () => {
             if (!shopSlug) {
                 alert('Peringatan: Slug Warung (?shop=...) tidak ditemukan.');
             } else {
-                document.getElementById('link-kembali-admin').href = `admin.html?shop=${shopSlug}`;
+                // Diarahkan kembali ke halaman panel dapur sebelumnya (bukan ke admin.html kasar)
+                document.getElementById('link-kembali-admin').href = `index-admin.html?shop=${shopSlug}`;
                 localStorage.setItem('current_shop_slug', shopSlug);
             }
 
@@ -140,7 +136,6 @@
             }
         });
 
-        // KONTROL MODAL OPSI
         function bukaPilihanMedia() {
             const modal = document.getElementById('modal-opsi');
             const content = modal.querySelector('div');
@@ -156,40 +151,42 @@
             const content = modal.querySelector('div');
             modal.classList.add('opacity-0');
             content.classList.add('translate-y-full');
-            setTimeout(() => {
-                modal.classList.add('hidden');
-            }, 200);
+            setTimeout(() => { modal.classList.add('hidden'); }, 200);
         }
 
-        function pilihKamera() {
-            tutupPilihanMedia();
-            document.getElementById('foto_kamera').click();
-        }
+        function pilihKamera() { tutupPilihanMedia(); document.getElementById('foto_kamera').click(); }
+        function pilihGaleri() { tutupPilihanMedia(); document.getElementById('foto_galeri').click(); }
 
-        function pilihGaleri() {
-            tutupPilihanMedia();
-            document.getElementById('foto_galeri').click();
-        }
-
-        // FUNGSI LOAD DATA JIKA MODE EDIT
+        // FUNGSI UTAMA LOAD DATA EDIT
         function loadProductData(id) {
             fetch(`${API_BASE}/${id}`)
                 .then(res => {
                     if(!res.ok) throw new Error('Gagal mengambil data produk');
                     return res.json();
                 })
-                .then(product => {
-                    document.getElementById('nama_produk').value = product.nama_produk || '';
-                    document.getElementById('kategori').value = product.kategori || 'Makanan';
-                    document.getElementById('harga').value = product.harga || '';
-                    document.getElementById('deskripsi').value = product.deskripsi || '';
+                .then(response => {
+                    // Penyesuaian membaca objek single data produk dari format umum server API Anda
+                    const produk = response.data || response;
                     
-                    if (product.foto_produk) {
+                    document.getElementById('nama_produk').value = produk.name || produk.nama || produk.nama_produk || '';
+                    document.getElementById('kategori').value = produk.category || produk.kategori || 'Makanan';
+                    document.getElementById('harga').value = produk.price || produk.harga || '';
+                    document.getElementById('deskripsi').value = produk.description || produk.deskripsi || '';
+                    
+                    const dbFoto = produk.image_url || produk.foto || produk.foto_produk;
+                    if (dbFoto) {
                         const imgPreview = document.getElementById('img-preview');
                         const instruksi = document.getElementById('tempat-instruksi');
                         const kotakPreview = document.getElementById('kotak-preview');
                         
-                        imgPreview.src = product.foto_produk;
+                        let ruteFoto = dbFoto;
+                        if (!dbFoto.startsWith('http') && !dbFoto.startsWith('https')) {
+                            ruteFoto = `${API_URL}${dbFoto}`;
+                        } else if (dbFoto.includes('r2.dev')) {
+                            ruteFoto = `https://wsrv.nl/?url=${encodeURIComponent(dbFoto)}`;
+                        }
+                        
+                        imgPreview.src = ruteFoto;
                         instruksi.classList.add('hidden');
                         kotakPreview.classList.remove('hidden');
                     }
@@ -199,25 +196,24 @@
                 });
         }
 
-        // FUNGSI UNTUK LIVE PREVIEW GAMBAR
         function previewFoto(input) {
-            const instruksi = document.getElementById('tempat-instruksi');
+            const Skinner = document.getElementById('tempat-instruksi');
             const kotakPreview = document.getElementById('kotak-preview');
             const imgPreview = document.getElementById('img-preview');
 
             if (input.files && input.files[0]) {
-                activeFile = input.files[0]; // simpan file yang dipilih pengguna ke variabel global
+                activeFile = input.files[0];
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     imgPreview.src = e.target.result;
-                    instruksi.classList.add('hidden');
+                    Skinner.classList.add('hidden');
                     kotakPreview.classList.remove('hidden');
                 }
                 reader.readAsDataURL(input.files[0]);
             }
         }
 
-        // FUNGSI KIRIM DATA MENGGUNAKAN FORMDATA
+        // FUNGSI MULTIPART FORM DATA SUBMIT
         function simpanProduk(event) {
             event.preventDefault();
 
@@ -226,7 +222,6 @@
                 return;
             }
 
-            // Validasi file wajib diisi jika mode tambah produk baru
             if (!productId && !activeFile) {
                 alert('Silakan pilih atau ambil foto produk terlebih dahulu.');
                 return;
@@ -239,17 +234,25 @@
 
             const formData = new FormData();
             formData.append('shop', shopSlug); 
-            formData.append('nama_produk', document.getElementById('nama_produk').value);
-            formData.append('kategori', document.getElementById('kategori').value);
-            formData.append('harga', document.getElementById('harga').value);
-            formData.append('deskripsi', document.getElementById('deskripsi').value);
+            formData.append('name', document.getElementById('nama_produk').value); // disamakan ke field API database umum ('name')
+            formData.append('category', document.getElementById('kategori').value);
+            formData.append('price', document.getElementById('harga').value);
+            formData.append('description', document.getElementById('deskripsi').value);
             
             if (activeFile) {
-                formData.append('foto_produk', activeFile);
+                formData.append('image', activeFile); // disamakan ke field upload API utama
             }
 
-            const url = productId ? `${API_BASE}/${productId}` : API_BASE;
-            const method = productId ? 'PUT' : 'POST';
+            // PENTING: Beberapa platform server PHP/Node Native tidak mendukung metode PUT bawaan Form Data Multipart.
+            // Kita gunakan taktik penambahan field _method atau mengirimkan via POST/PUT bersyarat
+            let url = API_BASE;
+            let method = 'POST';
+
+            if (productId) {
+                url = `${API_BASE}/${productId}`;
+                method = 'POST'; // Kita bisa gunakan POST dan lampirkan method spoofing jika backend membutuhkannya
+                formData.append('_method', 'PUT'); // Fallback spoofing untuk backend
+            }
 
             fetch(url, {
                 method: method,
@@ -263,14 +266,8 @@
             })
             .then(data => {
                 alert('Sukses! Data menu berhasil disimpan.');
-                if (!productId) {
-                    document.getElementById('form-produk').reset();
-                    activeFile = null;
-                    document.getElementById('kotak-preview').classList.add('hidden');
-                    document.getElementById('tempat-instruksi').classList.remove('hidden');
-                } else {
-                    window.location.href = `admin.html?shop=${shopSlug}`;
-                }
+                // Kembalikan ke panel dapur kita yang sebelumnya
+                window.location.href = `index-admin.html?shop=${shopSlug}`;
             })
             .catch(err => {
                 console.error(err);
