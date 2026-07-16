@@ -454,7 +454,7 @@
         // =========================================================================
         // FUNGSI UTAMA: MENYIAPKAN DATA & MEMBUKA DIALOG PRINT (SUDAH DIPERBAIKI)
         // =========================================================================
-        function siapkanDanCetakStruk(orderId) {
+        function siapkanDanCetakStrukpakewindows(orderId) {
             // Cari data order dengan memeriksa properti .id ATAU .order_id
             const order = rawOrdersData.find(o => {
                 const idTarget = o.id || o.order_id;
@@ -501,6 +501,56 @@
 
             // Jalankan print dialog bawaan browser
             window.print();
+        }
+
+        function siapkanDanCetakStruk(orderId) {
+            const order = rawOrdersData.find(o => {
+                const idTarget = o.id || o.order_id;
+                return String(idTarget) === String(orderId);
+            });
+
+            if (!order) {
+                alert("Data struk tidak ditemukan.");
+                return;
+            }
+
+            const realOrderId = order.id || order.order_id;
+            const tgl = new Date(order.created_at);
+            const formatWaktu = `${tgl.getDate()}/${tgl.getMonth()+1}/${tgl.getFullYear()} ${tgl.getHours().toString().padStart(2,'0')}:${tgl.getMinutes().toString().padStart(2,'0')}`;
+            const metode = order.payment_method ? order.payment_method.toUpperCase() : 'TRANSFER';
+
+            // Susun format TEXT murni
+            let strukTeks = "";
+            strukTeks += "      DAPUR WARUNG BU ROS\n";
+            strukTeks += `        Metode: ${metode}\n`;
+            strukTeks += "--------------------------------\n";
+            strukTeks += `Order : #ORD-${realOrderId}\n`;
+            strukTeks += `Tgl   : ${formatWaktu}\n`;
+            strukTeks += `Pel   : ${order.customer_name}\n`;
+            strukTeks += `Meja  : ${order.table_or_address}\n`;
+            strukTeks += "--------------------------------\n";
+
+            order.items.forEach(item => {
+                const subtotal = item.subtotal ? `Rp ${item.subtotal.toLocaleString('id-ID')}` : '';
+                strukTeks += `${item.kuantitas}x ${item.nama}\n`;
+                if (subtotal) {
+                    strukTeks += `                  ${subtotal}\n`;
+                }
+                if (item.catatan) {
+                    strukTeks += ` * Catatan: ${item.catatan}\n`;
+                }
+            });
+
+            strukTeks += "--------------------------------\n";
+            strukTeks += `TOTAL: Rp ${Number(order.total_price).toLocaleString('id-ID')}\n\n`;
+            strukTeks += "Terima Kasih atas Kunjungan Anda!\n";
+            strukTeks += "    Silakan Datang Kembali.\n\n\n\n";
+
+            // Kirim langsung ke aplikasi RawBT di Android menggunakan skema URL intent
+            const rawBtUrl = "intent:#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;S.text=" + encodeURIComponent(strukTeks) + ";end;";
+            
+            // Alihkan halaman sebentar ke link ini untuk memicu print otomatis di HP
+            window.location.href = rawBtUrl;
         }
 
         // Kontrol Status Buka/Tutup Warung
