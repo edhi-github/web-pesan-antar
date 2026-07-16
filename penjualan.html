@@ -548,11 +548,11 @@
 
             // --- PERBAIKAN DI SINI: MENGGUNAKAN BASE64 ---
             
-            // 1. Konversi teks struk ke Base64 (Mendukung karakter UTF-8 / Rupiah dengan aman)
+            // 1. Konversi teks struk ke Base64 dengan aman
             const base64Text = btoa(unescape(encodeURIComponent(strukTeks)));
             
-            // 2. Kirim menggunakan protokol khusus RawBT Base64
-            const rawBtUrl = "rawbt://base64/" + base64Text;
+            // 2. Gunakan skema Intent resmi dengan parameter khusus Base64 (.base64)
+            const rawBtUrl = "intent:#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;S.base64=" + base64Text + ";end;";
             
             // 3. Picu aplikasi RawBT
             window.location.href = rawBtUrl;
