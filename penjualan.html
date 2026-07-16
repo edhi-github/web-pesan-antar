@@ -530,43 +530,48 @@
             strukTeks += `Meja  : ${order.table_or_address}\n`;
             strukTeks += "--------------------------------\n";
 
-            order.items.forEach(item => {
-                const subtotal = item.subtotal ? `Rp ${item.subtotal.toLocaleString('id-ID')}` : '';
-                strukTeks += `${item.kuantitas}x ${item.nama}\n`;
-                if (subtotal) {
-                    strukTeks += `                  ${subtotal}\n`;
-                }
-                if (item.catatan) {
-                    strukTeks += ` * Catatan: ${item.catatan}\n`;
-                }
-            });
+            // PERBAIKAN: Pemetaan nama properti item (mendukung fallback jika beda penamaan key)
+            if (order.items && order.items.length > 0) {
+                order.items.forEach(item => {
+                    const namaItem = item.nama || item.name || item.product_name || "";
+                    const qtyItem = item.kuantitas || item.quantity || 1;
+                    const catatanItem = item.catatan || item.notes || item.note || "";
+                    
+                    // Mengambil subtotal atau menghitung harga x qty jika subtotal kosong
+                    const hargaItem = item.subtotal || (item.price ? (item.price * qtyItem) : 0);
+                    const formatHarga = hargaItem ? `Rp ${Number(hargaItem).toLocaleString('id-ID')}` : '';
+
+                    strukTeks += `${qtyItem}x ${namaItem}\n`;
+                    if (formatHarga) {
+                        // Supaya harga tergeser ke kanan (lebar thermal 32 karakter)
+                        const sisaSpasi = 32 - formatHarga.length;
+                        const padding = sisaSpasi > 0 ? " ".repeat(sisaSpasi) : "";
+                        strukTeks += `${padding}${formatHarga}\n`;
+                    }
+                    if (catatanItem) {
+                        strukTeks += ` * Catatan: ${catatanItem}\n`;
+                    }
+                });
+            }
 
             strukTeks += "--------------------------------\n";
             strukTeks += `TOTAL: Rp ${Number(order.total_price).toLocaleString('id-ID')}\n\n`;
             strukTeks += "Terima Kasih atas Kunjungan Anda!\n";
             strukTeks += "    Silakan Datang Kembali.\n\n\n\n";
 
-            // --- PERBAIKAN: MENGGUNAKAN LOCALHOST API RAWBT ---
-            
-            // Kirim data teks langsung ke server internal RawBT di HP
-            fetch('http://localhost:40213/print', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'text/plain'
-                },
-                body: strukTeks
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Gagal mengirim ke printer lokal');
-                }
-                console.log('Struk berhasil dikirim ke RawBT');
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                // Jika localhost diblokir/belum aktif, gunakan fallback link yang paling basic
+            // --- FIX PENGIRIMAN RAWBT VIA BASE64 TANPA TEKS EMBEL-EMBEL ---
+            try {
+                // Gunakan metode bawaan browser btoa yang dikombinasikan dengan encodeURIComponent untuk text UTF-8 aman
+                const base64Data = btoa(encodeURIComponent(strukTeks).replace(/%([0-9A-F]{2})/g, function(match, p1) {
+                    return String.fromCharCode(parseInt(p1, 16));
+                }));
+                
+                // Panggil langsung via skema tautan base64 RawBT resmi
+                window.location.href = "rawbt://base64/" + base64Data;
+            } catch (e) {
+                console.error("Gagal enkripsi base64, gunakan teks biasa: ", e);
                 window.location.href = "rawbt://prints/" + encodeURIComponent(strukTeks);
-            });
+            }
         }
 
         // Kontrol Status Buka/Tutup Warung
