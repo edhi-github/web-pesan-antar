@@ -425,17 +425,25 @@
 
         // Fungsi untuk menyembunyikan/menampilkan upload file bukti bayar
         function togglePaymentMethod(checkbox) {
-            const wrapperUpload = document.getElementById('wrapper-upload-components' || 'wrapper-upload-bukti');
+            // Pastikan ID pembungkus ini sesuai dengan ID di elemen HTML Anda
+            const wrapperUpload = document.getElementById('wrapper-upload-bukti');
             const fileInput = document.getElementById('cust-payment-proof');
-            const tombolRekening = document.querySelector('[id*="Lihat Rekening"]' || 'button'); // Menyesuaikan tombol dropdown rekening jika ada
 
             if (checkbox.checked) {
-                wrapperUpload.classList.add('hidden');
-                fileInput.removeAttribute('required');
-                fileInput.value = ""; // Reset file jika sempat terpilih
+                // Jika CASH dicentang: sembunyikan upload & hapus status wajib (required)
+                if (wrapperUpload) wrapperUpload.classList.add('hidden');
+                if (fileInput) {
+                    fileInput.removeAttribute('required');
+                    fileInput.required = false; // Memastikan via property browser
+                    fileInput.value = "";       // Reset pilihan file jika ada
+                }
             } else {
-                wrapperUpload.classList.remove('hidden');
-                fileInput.setAttribute('required', 'required');
+                // Jika CASH tidak dicentang: munculkan kembali & wajibkan upload
+                if (wrapperUpload) wrapperUpload.classList.remove('hidden');
+                if (fileInput) {
+                    fileInput.setAttribute('required', 'required');
+                    fileInput.required = true;
+                }
             }
         }
 
@@ -528,7 +536,7 @@
             .then(data => {
                 if (!data) return;
                 if (data.success) {
-                    alert(`Terima kasih! Pesanan Berhasil Dikirim dengan metode [${isCash ? 'CASH' : 'TRANSFER'}] (ID: #ORD-${data.order_id})`);
+                    alert(`Terima kasih! Pesanan Berhasil Dikirim dengan metode [${isCash ? 'CASH, Silahkan ke KASIR untuk pembayaran' : 'TRANSFER'}] (ID: #ORD-${data.order_id})`);
                     keranjang = [];
                     hitungTotal();
                     tutupModalPesanan();
