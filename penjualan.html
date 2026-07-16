@@ -6,6 +6,37 @@
     <title>Dapur Utama - Rekap Pesanan Masuk</title>
     <!-- Menggunakan Tailwind CSS untuk layouting cepat -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- STYLE KHUSUS UNTUK CETAK STRUK THERMAL -->
+    <style>
+        /* Sembunyikan area struk saat mode layar normal */
+        #struk-cetak {
+            display: none;
+        }
+
+        /* Aturan cetak untuk membuat layout struk kasir mini */
+        @media print {
+            /* Sembunyikan semua elemen dashboard bawaan */
+            body *, header, main, #modal-bukti-bayar {
+                display: none !important;
+            }
+            /* Tampilkan area struk saja */
+            #struk-cetak {
+                display: block !important;
+                width: 58mm; /* Standar lebar kertas thermal kecil */
+                margin: 0;
+                padding: 0;
+                font-family: 'Courier New', Courier, monospace;
+                font-size: 10px;
+                color: #000;
+                background-color: #fff;
+            }
+            /* Atur margin halaman browser jadi nol saat print */
+            @page {
+                margin: 0;
+            }
+        }
+    </style>
 </head>
 <body class="bg-gray-100 text-gray-800 antialiased font-sans">
     <script src="config.js"></script>
@@ -68,6 +99,41 @@
 
     </main>
 
+    <!-- ========================================================================= -->
+    <!-- TEMPLATE STRUK UNTUK DI-PRINT (TERSEMBUNYI DI LAYAR, MUNCUL SAAT PRINT) -->
+    <!-- ========================================================================= -->
+    <div id="struk-cetak" class="p-2">
+        <div style="text-align: center; margin-bottom: 10px;">
+            <h2 style="font-size: 13px; font-weight: bold; margin: 0; text-transform: uppercase;" id="struk-nama-warung">DAPUR WARUNG</h2>
+            <p style="margin: 2px 0 0 0;" id="struk-alamat">Metode: <span id="struk-pembayaran">-</span></p>
+            <p style="margin: 0;">--------------------------------</p>
+        </div>
+        
+        <div style="margin-bottom: 8px; line-height: 1.2;">
+            <div>Order : #ORD-<span id="struk-order-id">00</span></div>
+            <div>Tgl   : <span id="struk-tanggal">-</span></div>
+            <div>Pel   : <span id="struk-pelanggan">-</span></div>
+            <div>Meja  : <span id="struk-lokasi">-</span></div>
+        </div>
+        
+        <p style="margin: 0;">--------------------------------</p>
+        <div id="struk-items" style="margin: 5px 0; line-height: 1.3;">
+            <!-- Menu tercetak di sini -->
+        </div>
+        <p style="margin: 0;">--------------------------------</p>
+        
+        <div style="text-align: right; margin-top: 5px; font-size: 11px; font-weight: bold;">
+            TOTAL: Rp <span id="struk-total">0</span>
+        </div>
+        
+        <div style="text-align: center; margin-top: 15px; font-size: 8px;">
+            Terima Kasih atas Kunjungan Anda!<br>
+            Silakan Datang Kembali.
+        </div>
+    </div>
+    <!-- ========================================================================= -->
+
+
     <!-- INTERAKSI JAVASCRIPT -->
     <script>
         const urlParams = new URLSearchParams(window.location.search);
@@ -76,10 +142,14 @@
         // Menyimpan tab yang sedang aktif saat ini
         let tabAktifSekarang = 'baru'; 
 
+        // Cache data orders lokal untuk fungsi print
+        let rawOrdersData = [];
+
         if (!currentShopSlug) {
             alert("Peringatan: URL tidak memiliki parameter warung. Contoh akses yang benar: penjualan.html?shop=warung-bu-kris");
         } else {
             document.getElementById('nama-warung-header').innerText = `DAPUR ${currentShopSlug.replace(/-/g, ' ')}`;
+            document.getElementById('struk-nama-warung').innerText = `DAPUR ${currentShopSlug.replace(/-/g, ' ')}`;
             document.getElementById('link-admin-stok').href = `admin.html?shop=${currentShopSlug}`;
         }
 
@@ -96,6 +166,9 @@
             .then(res => res.json())
             .then(orders => {
                 if (!Array.isArray(orders)) return;
+
+                // Simpan ke cache lokal
+                rawOrdersData = orders;
 
                 // Kelompokkan data lokal untuk menghitung total badge
                 const listBaru = orders.filter(o => o.status === 'baru');
@@ -206,7 +279,7 @@
                 const menitLalu = Math.floor((new Date() - new Date(waktuAcuan)) / 60000);
                 let teksWaktu = menitLalu < 1 ? 'Baru saja' : `${menitLalu} mnt lalu`;
 
-                // Khusus untuk riwayat selesai & reject, akan lebih informatif jika menampilkan jam eksekusinya langsung (misal: "Selesai jam 14.25")
+                // Khusus untuk riwayat selesai & reject, menampilkan jam eksekusinya langsung
                 if (tipeTab === 'selesai' || tipeTab === 'reject') {
                     const jamFormat = new Date(waktuAcuan).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
                     teksWaktu = `Jam ${jamFormat}`;
@@ -240,6 +313,12 @@
                     `;
                 } else if (tipeTab === 'selesai') {
                     labelStatus = `<span class="bg-green-500 text-white text-[10px] font-black px-2 py-0.5 rounded-md uppercase">Selesai</span>`;
+                    // TOMBOL TAMBAHAN DI TAB SELESAI UNTUK RE-PRINT STRUK BILA DIPERLUKAN
+                    htmlTombolAksi = `
+                        <button onclick="siapkanDanCetakStruk('${order.id}')" class="w-full bg-gray-100 hover:bg-gray-200 border border-gray-300 text-gray-700 font-bold text-xs py-2 rounded-xl shadow-sm transition">
+                            🖨️ Cetak Ulang Struk
+                        </button>
+                    `;
                 } else if (tipeTab === 'reject') {
                     kartuStyle = "bg-red-50/50 border border-red-100 opacity-80";
                     labelStatus = `<span class="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-md uppercase">Rejected</span>`;
@@ -313,7 +392,6 @@
         function ambilSelesaiAtauReject(statusTarget) {
             if (!currentShopSlug) return;
 
-            // Jika selesai, panggil endpoint history bawaan. Jika reject, kita gunakan filter khusus
             let url = `${API_URL}/api/orders/history?shop=${currentShopSlug}`;
             
             fetch(url)
@@ -321,14 +399,8 @@
             .then(data => {
                 if (!Array.isArray(data)) return;
 
-                // Jika minta reject, kita ambil semua yang berstatus reject (kita perlu buat backend mensupport ini / filter client-side)
-                if (statusTarget === 'reject') {
-                    fetch(`${API_URL}/api/orders/active?shop=${currentShopSlug}`)
-                    .then(res => res.json())
-                    .then(allOrders => {
-                        // Jika ada endpoint khusus/kita bisa filter dari pesanan yang di-reject
-                    });
-                }
+                // Simpan juga data riwayat ke cache agar bisa di-print ulang dari tab Selesai
+                rawOrdersData = data;
                 
                 // Panggil loader render
                 renderKartuPesanan(data.filter(o => o.status === statusTarget), statusTarget);
@@ -344,7 +416,7 @@
             } else if (statusBaru === 'reject') {
                 pesanKonfirmasi = `Yakin ingin MENOLAK pesanan #ORD-${idOrder}?`;
             } else if (statusBaru === 'selesai') {
-                pesanKonfirmasi = `Yakin pesanan #ORD-${idOrder} sudah selesai diantar?`;
+                pesanKonfirmasi = `Yakin pesanan #ORD-${idOrder} sudah selesai diantar? (Struk akan otomatis dicetak)`;
             }
 
             if (confirm(pesanKonfirmasi)) {
@@ -356,11 +428,14 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        // Tetap di tab saat ini atau otomatis pindah tab setelah aksi sukses
-                        if (statusBaru === 'proses') {
-                            gantiTab('proses'); // Pindahkan fokus ke tab "Proses" setelah diapprove
+                        // Jika status diset ke Selesai, trigger cetak struk otomatis terlebih dahulu
+                        if (statusBaru === 'selesai') {
+                            siapkanDanCetakStruk(idOrder);
+                            gantiTab('selesai'); // Pindahkan fokus ke tab Selesai
+                        } else if (statusBaru === 'proses') {
+                            gantiTab('proses'); 
                         } else if (statusBaru === 'reject') {
-                            gantiTab('reject'); // Pindahkan ke tab "Reject"
+                            gantiTab('reject'); 
                         } else {
                             ambilDataDapur();
                         }
@@ -370,6 +445,48 @@
                 })
                 .catch(err => alert('Gagal memproses perubahan status ke database.'));
             }
+        }
+
+        // ==========================================
+        // FUNGSI UTAMA: MENYIAPKAN DATA & MEMBUKA DIALOG PRINT
+        // ==========================================
+        function siapkanDanCetakStruk(orderId) {
+            // Cari data order yang bersangkutan di cache lokal kita
+            const order = rawOrdersData.find(o => String(o.id) === String(orderId));
+            if (!order) {
+                alert("Data struk tidak ditemukan dalam cache sistem.");
+                return;
+            }
+
+            // Atur isi teks ke template struk cetak
+            document.getElementById('struk-order-id').innerText = order.id;
+            document.getElementById('struk-pembayaran').innerText = order.payment_method ? order.payment_method.toUpperCase() : 'TRANSFER';
+            
+            // Format waktu struk
+            const tgl = new Date(order.created_at);
+            const formatWaktu = `${tgl.getDate()}/${tgl.getMonth()+1}/${tgl.getFullYear()} ${tgl.getHours().toString().padStart(2,'0')}:${tgl.getMinutes().toString().padStart(2,'0')}`;
+            document.getElementById('struk-tanggal').innerText = formatWaktu;
+            
+            document.getElementById('struk-pelanggan').innerText = order.customer_name;
+            document.getElementById('struk-lokasi').innerText = order.table_or_address;
+            document.getElementById('struk-total').innerText = order.total_price.toLocaleString('id-ID');
+
+            // Render daftar items belanja
+            const itemsContainer = document.getElementById('struk-items');
+            itemsContainer.innerHTML = '';
+            order.items.forEach(item => {
+                const subtotal = item.subtotal ? `Rp ${item.subtotal.toLocaleString('id-ID')}` : '';
+                itemsContainer.innerHTML += `
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+                        <span>${item.kuantitas}x ${item.nama}</span>
+                        <span>${subtotal}</span>
+                    </div>
+                    ${item.catatan ? `<div style="font-size: 8px; font-style: italic; margin-left: 10px; margin-bottom: 4px;">* Catatan: ${item.catatan}</div>` : ''}
+                `;
+            });
+
+            // Jalankan print dialog bawaan browser
+            window.print();
         }
 
         // Kontrol Status Buka/Tutup Warung
