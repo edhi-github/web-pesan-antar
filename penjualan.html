@@ -546,16 +546,27 @@
             strukTeks += "Terima Kasih atas Kunjungan Anda!\n";
             strukTeks += "    Silakan Datang Kembali.\n\n\n\n";
 
-            // --- PERBAIKAN DI SINI: MENGGUNAKAN BASE64 ---
+            // --- PERBAIKAN: MENGGUNAKAN LOCALHOST API RAWBT ---
             
-            // 1. Konversi teks struk ke Base64 dengan aman
-            const base64Text = btoa(unescape(encodeURIComponent(strukTeks)));
-            
-            // 2. Gunakan skema Intent resmi dengan parameter khusus Base64 (.base64)
-            const rawBtUrl = "intent:#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;S.base64=" + base64Text + ";end;";
-            
-            // 3. Picu aplikasi RawBT
-            window.location.href = rawBtUrl;
+            // Kirim data teks langsung ke server internal RawBT di HP
+            fetch('http://localhost:40213/print', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'text/plain'
+                },
+                body: strukTeks
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Gagal mengirim ke printer lokal');
+                }
+                console.log('Struk berhasil dikirim ke RawBT');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                // Jika localhost diblokir/belum aktif, gunakan fallback link yang paling basic
+                window.location.href = "rawbt://prints/" + encodeURIComponent(strukTeks);
+            });
         }
 
         // Kontrol Status Buka/Tutup Warung
