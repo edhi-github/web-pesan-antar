@@ -452,9 +452,9 @@
         }
 
         // =========================================================================
-        // FUNGSI UTAMA: MENYIAPKAN DATA & MEMBUKA DIALOG PRINT (SUDAH DIPERBAIKI)
+        // FUNGSI UTAMA: MENYIAPKAN DATA & MEMBUKA DIALOG PRINT (SUDAH DIPERBAIKI),hilangkan tulisan -windows nya kalau mau pake metode windows.print
         // =========================================================================
-        function siapkanDanCetakStrukpakewindows(orderId) {
+        function siapkanDanCetakStrukpake-windows(orderId) {
             // Cari data order dengan memeriksa properti .id ATAU .order_id
             const order = rawOrdersData.find(o => {
                 const idTarget = o.id || o.order_id;
@@ -546,10 +546,15 @@
             strukTeks += "Terima Kasih atas Kunjungan Anda!\n";
             strukTeks += "    Silakan Datang Kembali.\n\n\n\n";
 
-            // Kirim langsung ke aplikasi RawBT di Android menggunakan skema URL intent
-            const rawBtUrl = "intent:#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;S.text=" + encodeURIComponent(strukTeks) + ";end;";
+            // --- PERBAIKAN DI SINI: MENGGUNAKAN BASE64 ---
             
-            // Alihkan halaman sebentar ke link ini untuk memicu print otomatis di HP
+            // 1. Konversi teks struk ke Base64 (Mendukung karakter UTF-8 / Rupiah dengan aman)
+            const base64Text = btoa(unescape(encodeURIComponent(strukTeks)));
+            
+            // 2. Kirim menggunakan protokol khusus RawBT Base64
+            const rawBtUrl = "rawbt://base64/" + base64Text;
+            
+            // 3. Picu aplikasi RawBT
             window.location.href = rawBtUrl;
         }
 
