@@ -447,19 +447,26 @@
             }
         }
 
-        // ==========================================
-        // FUNGSI UTAMA: MENYIAPKAN DATA & MEMBUKA DIALOG PRINT
-        // ==========================================
+        // =========================================================================
+        // FUNGSI UTAMA: MENYIAPKAN DATA & MEMBUKA DIALOG PRINT (SUDAH DIPERBAIKI)
+        // =========================================================================
         function siapkanDanCetakStruk(orderId) {
-            // Cari data order yang bersangkutan di cache lokal kita
-            const order = rawOrdersData.find(o => String(o.id) === String(orderId));
+            // Cari data order dengan memeriksa properti .id ATAU .order_id
+            const order = rawOrdersData.find(o => {
+                const idTarget = o.id || o.order_id;
+                return String(idTarget) === String(orderId);
+            });
+
             if (!order) {
                 alert("Data struk tidak ditemukan dalam cache sistem.");
                 return;
             }
 
+            // Ambil ID yang valid
+            const realOrderId = order.id || order.order_id;
+
             // Atur isi teks ke template struk cetak
-            document.getElementById('struk-order-id').innerText = order.id;
+            document.getElementById('struk-order-id').innerText = realOrderId;
             document.getElementById('struk-pembayaran').innerText = order.payment_method ? order.payment_method.toUpperCase() : 'TRANSFER';
             
             // Format waktu struk
@@ -469,17 +476,20 @@
             
             document.getElementById('struk-pelanggan').innerText = order.customer_name;
             document.getElementById('struk-lokasi').innerText = order.table_or_address;
-            document.getElementById('struk-total').innerText = order.total_price.toLocaleString('id-ID');
+            document.getElementById('struk-total').innerText = Number(order.total_price).toLocaleString('id-ID');
 
             // Render daftar items belanja
             const itemsContainer = document.getElementById('struk-items');
             itemsContainer.innerHTML = '';
             order.items.forEach(item => {
-                const subtotal = item.subtotal ? `Rp ${item.subtotal.toLocaleString('id-ID')}` : '';
+                // Hitung subtotal kasar jika tidak ada field subtotal dari server
+                const hargaItem = item.harga || 0; // Sesuaikan jika ada field harga produk
+                const subtotalTeks = hargaItem ? `Rp ${(hargaItem * item.kuantitas).toLocaleString('id-ID')}` : '';
+                
                 itemsContainer.innerHTML += `
                     <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
                         <span>${item.kuantitas}x ${item.nama}</span>
-                        <span>${subtotal}</span>
+                        <span>${subtotalTeks}</span>
                     </div>
                     ${item.catatan ? `<div style="font-size: 8px; font-style: italic; margin-left: 10px; margin-bottom: 4px;">* Catatan: ${item.catatan}</div>` : ''}
                 `;
