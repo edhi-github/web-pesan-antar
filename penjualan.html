@@ -7,31 +7,33 @@
     <!-- Menggunakan Tailwind CSS untuk layouting cepat -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- STYLE KHUSUS UNTUK CETAK STRUK THERMAL -->
+    <!-- STYLE KHUSUS UNTUK CETAK STRUK THERMAL (VERSI FIX) -->
     <style>
-        /* Sembunyikan area struk saat mode layar normal */
+        /* Sembunyikan area struk saat di layar normal */
         #struk-cetak {
             display: none;
         }
 
-        /* Aturan cetak untuk membuat layout struk kasir mini */
+        /* Aturan khusus saat mode cetak (print) aktif */
         @media print {
-            /* Sembunyikan semua elemen dashboard bawaan */
-            body *, header, main, #modal-bukti-bayar {
+            /* Sembunyikan semua elemen yang memiliki class 'no-print' */
+            .no-print {
                 display: none !important;
             }
-            /* Tampilkan area struk saja */
+            
+            /* Tampilkan area struk */
             #struk-cetak {
                 display: block !important;
-                width: 58mm; /* Standar lebar kertas thermal kecil */
-                margin: 0;
-                padding: 0;
+                width: 58mm; /* Lebar kertas thermal mini */
+                margin: 0 auto;
+                padding: 10px;
                 font-family: 'Courier New', Courier, monospace;
                 font-size: 10px;
                 color: #000;
                 background-color: #fff;
             }
-            /* Atur margin halaman browser jadi nol saat print */
+
+            /* Hilangkan margin browser default agar kertas pas */
             @page {
                 margin: 0;
             }
@@ -42,7 +44,7 @@
     <script src="config.js"></script>
 
     <!-- 1. FIXED HEADER -->
-    <header class="bg-white shadow-md sticky top-0 z-10 border-b border-gray-200">
+    <header class="bg-white shadow-md sticky top-0 z-10 border-b border-gray-200 no-print">
         
         <div class="max-w-md mx-auto px-4 pt-3 pb-2 flex justify-between items-center">
             <div>
@@ -89,7 +91,7 @@
     </header>
 
     <!-- 2. KONTEN UTAMA DAFTAR KARTU -->
-    <main class="max-w-md mx-auto p-4 pb-20">
+    <main class="max-w-md mx-auto p-4 pb-20 no-print">
         
         <!-- CONTAINER UNTUK TIAP STATUS -->
         <div id="container-pesanan" class="space-y-4">
@@ -553,7 +555,7 @@
     </script>
 
     <!-- 3. MODAL POPUP UNTUK MEMPERBESAR BUKTI BAYAR -->
-    <div id="modal-bukti-bayar" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm" onclick="tutupModalBukti()">
+    <div id="modal-bukti-bayar" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm no-print" onclick="tutupModalBukti()">
         <div class="relative max-w-sm w-full bg-white rounded-2xl p-3 shadow-2xl" onclick="event.stopPropagation()">
             <div class="flex justify-between items-center mb-2 pb-1 border-b">
                 <h3 class="text-xs font-bold text-gray-800">Pratinjau Bukti Pembayaran</h3>
