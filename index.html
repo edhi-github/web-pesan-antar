@@ -429,10 +429,13 @@
                 .then(response => {
                     if (response.hasOwnProperty('is_open')) {
                         updateStatusTokoUI(response.is_open);
+                        // <--- SISIPKAN FUNGSI BARU DI SINI --->
+                        terapkanSettinganTokoPihakPembeli();
                     } else if (response.data && response.data.length > 0 && response.data[0].hasOwnProperty('shop_status')) {
                         updateStatusTokoUI(Number(response.data[0].shop_status) === 1);
                     }
 
+                    
                     if (!response.success || !response.data || response.data.length === 0) {
                         containerMenu.innerHTML = '<div class="text-center py-10 text-gray-400 text-sm">Belum ada menu yang tersedia saat ini.</div>';
                         return;
@@ -628,6 +631,64 @@
                 infoDiv.classList.add('hidden');
                 panah.innerText = '▼';
             }
+        }
+
+        // =========================================================================
+        // LOGIKA BARU: MENERAPKAN SETTINGAN DARI SISI DATABASE KE SISI WEB PEMBELI
+        // =========================================================================
+        function terapkanSettinganTokoPihakPembeli() {
+            if (!currentShopSlug) return;
+
+            fetch(`${API_URL}/api/shops/settings?shop=${currentShopSlug}`)
+                .then(res => res.json())
+                .then(res => {
+                    if (!res.success || !res.data) return;
+                    const s = res.data;
+
+                    // 1. Kontrol Tombol Pembayaran Tunai/Cash
+                    const wrapperCheckboxCash = document.getElementById('pay-cash').closest('.mb-4');
+                    if (Number(s.show_cash_payment) === 0) {
+                        if (wrapperCheckboxCash) wrapperCheckboxCash.classList.add('hidden');
+                        document.getElementById('pay-cash').checked = false;
+                        togglePaymentMethod(document.getElementById('pay-cash')); // Pastikan upload bukti dipaksa 'required'
+                    } else {
+                        if (wrapperCheckboxCash) wrapperCheckboxCash.classList.remove('hidden');
+                    }
+
+                    // 2. Render List Nomor Rekening Dinamis
+                    const infoPembayaranContainer = document.getElementById('info-pembayaran');
+                    const targetRekeningDiv = infoPembayaranContainer.querySelector('.text-xs.text-gray-600.space-y-1');
+                    
+                    if (s.bank_rekening_info && s.bank_rekening_info.trim() !== '') {
+                        // Bersihkan baris bawaan bawaan html default terdahulu
+                        targetRekeningDiv.innerHTML = '<p class="font-bold text-gray-700">Silakan transfer ke salah satu rekening berikut:</p>';
+                        
+                        const lines = s.bank_rekening_info.split('\n');
+                        lines.forEach(line => {
+                            if (line.trim() === '') return;
+                            
+                            const itemRekHtml = `
+                                <div class="bg-white p-2 rounded border border-gray-100 shadow-sm flex justify-between items-center mt-1">
+                                    <div>
+                                        <span class="font-mono text-xs select-all text-gray-800">${line}</span>
+                                    </div>
+                                    <button type="button" onclick="navigator.clipboard.writeText('${line.replace(/'/g, "\\'")}'); alert('Detail rekening disalin!');" 
+                                            class="text-[9px] bg-gray-100 hover:bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded font-semibold flex-shrink-0 ml-2">Salin</button>
+                                </div>`;
+                            targetRekeningDiv.insertAdjacentHTML('beforeend', itemRekHtml);
+                        });
+                    }
+
+                    // 3. Render Gambar QRIS Dinamis
+                    const targetQrisImg = infoPembayaranContainer.querySelector('img[alt="QR Code"]');
+                    if (s.qris_image_url) {
+                        targetQrisImg.src = s.qris_image_url;
+                    } else {
+                        // Fallback jika admin belum mengupload qris baru
+                        targetQrisImg.src = "https://via.placeholder.com/100?text=QRIS+Belum+Ada";
+                    }
+                })
+                .catch(err => console.error("Gagal sinkronisasi setting warung ke pembeli:", err));
         }
     </script>
 </body>
