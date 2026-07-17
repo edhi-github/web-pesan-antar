@@ -8,6 +8,7 @@
 </head>
 <body class="bg-gray-50 text-gray-800 antialiased font-sans">
     <script src="config.js"></script>
+    
     <!-- 1. HEADER TOKO (DINAMIS) -->
     <header class="bg-white shadow-sm sticky top-0 z-10">
         <div class="max-w-md mx-auto px-4 py-4 flex justify-between items-center">
@@ -15,10 +16,16 @@
                 <h1 id="header-nama-warung" class="text-xl font-bold text-orange-600 uppercase">Memuat...</h1>
                 <p id="header-desc" class="text-xs text-gray-500">Menghubungkan ke toko...</p>
             </div>
-            <!-- Ditambahkan id="status-toko" untuk kontrol dinamis -->
-            <span id="status-toko" class="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1">
-                <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Buka
-            </span>
+            <div class="flex flex-col items-end gap-1.5">
+                <!-- Status Toko -->
+                <span id="status-toko" class="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1">
+                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Buka
+                </span>
+                <!-- TOMBOL POPUP CARI PESANAN -->
+                <button onclick="bukaModalCariPesanan()" class="text-[10px] bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold px-2 py-1 rounded-md border border-blue-200 transition">
+                    🔍 Lacak Pesanan
+                </button>
+            </div>
         </div>
     </header>
 
@@ -146,8 +153,6 @@
                         <input type="file" id="cust-payment-proof" required accept="image/*,application/pdf"
                             class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100">
                     </div>
-                    
-                    
                 </div>
 
                 <div class="border-t pt-2 mt-2 flex justify-between items-center text-sm font-bold">
@@ -161,13 +166,39 @@
         </div>
     </div>
 
+    <!-- MODAL POPUP PENCARIAN/PELACAKAN PESANAN (BARU) -->
+    <div id="search-modal" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl max-h-[85vh] flex flex-col space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="text-base font-bold text-gray-900">🔍 Lacak Status Pesanan Anda</h3>
+                <button onclick="tutupModalCariPesanan()" class="text-gray-400 hover:text-gray-600 text-2xl font-bold">×</button>
+            </div>
+            
+            <div class="space-y-2">
+                <label class="block text-xs font-bold text-gray-600 uppercase">Masukkan No. WhatsApp Saat Memesan</label>
+                <div class="flex gap-2">
+                    <input type="tel" id="search-phone" placeholder="Contoh: 08123456xxx" 
+                        class="flex-1 border border-gray-300 rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    <button onclick="prosesCariPesanan()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition">
+                        Cari
+                    </button>
+                </div>
+            </div>
+
+            <!-- AREA HASIL PENCARIAN -->
+            <div id="search-results-container" class="flex-1 overflow-y-auto space-y-3 pr-1 text-xs">
+                <p class="text-center text-gray-400 py-6">Masukkan nomor WhatsApp di atas untuk melihat pesanan aktif Anda.</p>
+            </div>
+        </div>
+    </div>
+
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const currentShopSlug = urlParams.get('shop');
 
         let keranjang = [];
         let totalHarga = 0;
-        let isShopOpen = true; // Flag status operasional warung
+        let isShopOpen = true; 
 
         document.addEventListener("DOMContentLoaded", () => {
             if (!currentShopSlug) {
@@ -182,10 +213,97 @@
             muatProdukDariDatabase();
         });
 
+        // ==========================================
+        // FUNGSI MODAL PENCARIAN PESANAN (BARU)
+        // ==========================================
+        function bukaModalCariPesanan() {
+            document.getElementById('search-modal').classList.remove('hidden');
+            document.getElementById('search-phone').value = '';
+            document.getElementById('search-results-container').innerHTML = '<p class="text-center text-gray-400 py-6">Masukkan nomor WhatsApp di atas untuk melihat pesanan aktif Anda.</p>';
+        }
+
+        function tutupModalCariPesanan() {
+            document.getElementById('search-modal').classList.add('hidden');
+        }
+
+        function prosesCariPesanan() {
+            const phoneInput = document.getElementById('search-phone').value.trim();
+            const resultContainer = document.getElementById('search-results-container');
+
+            if (!phoneInput) {
+                alert("Silakan isi nomor WhatsApp Anda terlebih dahulu!");
+                return;
+            }
+
+            resultContainer.innerHTML = '<div class="text-center py-6 text-gray-400 animate-pulse">Sedang mencari pesanan aktif...</div>';
+
+            fetch(`${API_URL}/api/orders/search?shop=${currentShopSlug}&phone=${encodeURIComponent(phoneInput)}`)
+                .then(res => res.json())
+                .then(response => {
+                    if (!response.success || !response.data || response.data.length === 0) {
+                        resultContainer.innerHTML = `
+                            <div class="text-center py-6 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                                <p class="font-bold text-gray-600">Tidak ada pesanan aktif</p>
+                                <p class="text-gray-400 text-[11px] mt-0.5">Pesanan dengan nomor tersebut tidak ditemukan atau sudah selesai.</p>
+                            </div>`;
+                        return;
+                    }
+
+                    resultContainer.innerHTML = ''; // Clear loader
+
+                    response.data.forEach(order => {
+                        const dateObj = new Date(order.created_at);
+                        const timeStr = `${dateObj.getDate()}/${dateObj.getMonth()+1} ${dateObj.getHours().toString().padStart(2,'0')}:${dateObj.getMinutes().toString().padStart(2,'0')}`;
+                        
+                        // Set style badge status hiasan berdasarkan level
+                        let statusColor = "bg-blue-100 text-blue-800";
+                        let statusLabel = "Antrean Baru";
+                        if (order.status === 'proses') {
+                            statusColor = "bg-yellow-100 text-yellow-800 animate-pulse";
+                            statusLabel = "Sedang Memasak";
+                        }
+
+                        let itemsListHtml = '';
+                        order.items.forEach(it => {
+                            itemsListHtml += `
+                                <div class="flex justify-between items-start text-gray-600 border-b border-gray-100 pb-1 mt-1">
+                                    <span>• ${it.nama} <b class="text-gray-800">x${it.kuantitas}</b></span>
+                                    ${it.catatan ? `<span class="text-[10px] text-orange-500 italic block">(${it.catatan})</span>` : ''}
+                                </div>`;
+                        });
+
+                        const cardHtml = `
+                            <div class="bg-gray-50 border border-gray-200 rounded-xl p-3.5 space-y-2 shadow-sm">
+                                <div class="flex justify-between items-center border-b border-gray-200 pb-1.5">
+                                    <div>
+                                        <span class="font-bold text-gray-900">#ORD-${order.id}</span>
+                                        <span class="text-gray-400 text-[10px] ml-1.5">${timeStr}</span>
+                                    </div>
+                                    <span class="${statusColor} text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">${statusLabel}</span>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] font-bold uppercase text-gray-400">Rincian Menu:</p>
+                                    ${itemsListHtml}
+                                </div>
+                                <div class="flex justify-between items-center text-[11px] font-semibold pt-1 text-gray-700">
+                                    <span>Meja: ${order.table_or_address} (${order.payment_method.toUpperCase()})</span>
+                                    <span class="text-orange-600 font-bold">Total: Rp ${Number(order.total_price).toLocaleString('id-ID')}</span>
+                                </div>
+                            </div>`;
+                        resultContainer.insertAdjacentHTML('beforeend', cardHtml);
+                    });
+                })
+                .catch(err => {
+                    console.error("Error fetching customer orders:", err);
+                    resultContainer.innerHTML = '<div class="text-center text-red-500 py-6">Gagal terhubung ke server internal pelacakan.</div>';
+                });
+        }
+
+        // ==========================================
+        // SISA FUNGSI BAWAAN SISTEM LOGIKA JANGAN BERUBAH
+        // ==========================================
         function updateStatusTokoUI(isOpen) {
-            // Paksa nilai menjadi boolean murni (true jika 1, false jika 0)
             const isTrueOpen = Number(isOpen) === 1 || isOpen === true;
-            
             isShopOpen = isTrueOpen;
             
             const statusBadge = document.getElementById('status-toko');
@@ -194,44 +312,31 @@
             const btnSubmitOrder = document.getElementById('btn-submit-order');
 
             if (!isTrueOpen) {
-                // === KONDISI TOKO TUTUP (MERAH) ===
                 if (statusBadge) {
                     statusBadge.className = "bg-red-100 text-red-800 text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1";
                     statusBadge.innerHTML = `<span class="w-2 h-2 bg-red-500 rounded-full"></span> Tutup`;
                 }
-                
-                // Tampilkan alert tutup & sembunyikan banner
                 if (alertTokoTutup) alertTokoTutup.classList.remove('hidden');
                 if (bannerWarung) bannerWarung.classList.add('hidden');
-
-                // Kunci tombol submit formulir
                 if (btnSubmitOrder) {
                     btnSubmitOrder.disabled = true;
                     btnSubmitOrder.innerText = "🔒 Toko Tutup - Tidak Bisa Kirim";
-                    // Opsional: tambahkan class agar tombol terlihat disable (misal warna abu-abu)
                     btnSubmitOrder.classList.add('opacity-50', 'cursor-not-allowed');
                 }
             } else {
-                // === KONDISI TOKO BUKA (HIJAU) - SEBELUMNYA HILANG ===
                 if (statusBadge) {
                     statusBadge.className = "bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1";
                     statusBadge.innerHTML = `<span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Buka`;
                 }
-                
-                // Sembunyikan alert tutup & tampilkan kembali banner warung
                 if (alertTokoTutup) alertTokoTutup.classList.add('hidden');
                 if (bannerWarung) bannerWarung.classList.remove('hidden');
-
-                // Aktifkan kembali tombol submit formulir
                 if (btnSubmitOrder) {
                     btnSubmitOrder.disabled = false;
-                    btnSubmitOrder.innerText = "Kirim Pesanan Sekarang"; // Sesuaikan dengan teks asli Anda
+                    btnSubmitOrder.innerText = "🚀 Kirim Pesanan ke Penjual"; 
                     btnSubmitOrder.classList.remove('opacity-50', 'cursor-not-allowed');
                 }
             }
         }
-
-
         
         function tambahItem(productIdAsli, nama, harga) {
             if(!isShopOpen) {
@@ -253,17 +358,12 @@
             keranjang = keranjang.filter(item => item.id !== idUnik);
             hitungTotal();
             renderModalItems();
-
-            if (keranjang.length === 0) {
-                tutupModalPesanan();
-            }
+            if (keranjang.length === 0) tutupModalPesanan();
         }
 
         function hitungTotal() {
             totalHarga = keranjang.reduce((sum, item) => sum + item.harga, 0);
-            
             const cartBar = document.getElementById('cart-bar');
-            // Keranjang belanja hanya muncul jika warung buka dan item > 0
             if(keranjang.length > 0 && isShopOpen) {
                 cartBar.classList.remove('hidden');
                 document.getElementById('cart-count').innerText = `${keranjang.length} Makanan/Minuman dipilih`;
@@ -301,15 +401,12 @@
                 `;
                 listContainer.appendChild(row);
             });
-
             document.getElementById('modal-total').innerText = `Rp ${totalHarga.toLocaleString('id-ID')}`;
         }
 
         function updateCatatan(idUnik, teksCatatan) {
             const item = keranjang.find(item => item.id === idUnik);
-            if (item) {
-                item.catatan = teksCatatan;
-            }
+            if (item) item.catatan = teksCatatan;
         }
 
         function bukaModalPesanan() {
@@ -330,7 +427,6 @@
             fetch(`${API_URL}/api/products?shop=${currentShopSlug}`)
                 .then(res => res.json())
                 .then(response => {
-                    
                     if (response.hasOwnProperty('is_open')) {
                         updateStatusTokoUI(response.is_open);
                     } else if (response.data && response.data.length > 0 && response.data[0].hasOwnProperty('shop_status')) {
@@ -343,7 +439,6 @@
                     }
 
                     containerMenu.innerHTML = ''; 
-
                     response.data.forEach(produk => {
                         const dbId = produk.id;
                         const dbNama = produk.name || produk.nama;
@@ -351,20 +446,14 @@
                         const dbDeskripsi = produk.description || produk.deskripsi || '';
                         const dbKategori = produk.category || produk.kategori || 'Menu';
                         const dbFoto = produk.image_url || produk.foto;
-                        const dbStok = produk.stock !== undefined ? produk.stock : 0; // Sisa Stok
+                        const dbStok = produk.stock !== undefined ? produk.stock : 0;
 
-                        // Produk tersedia HANYA JIKA item_available, stok > 0, dan Toko dalam keadaan Buka
                         const tersedia = (produk.is_available !== 0 && produk.is_available !== '0' && produk.is_available !== false) && dbStok > 0 && isShopOpen;
-
                         let ruteLengkapFoto = 'https://via.placeholder.com/150'; 
 
                         if (dbFoto) {
                             if (dbFoto.startsWith('http://') || dbFoto.startsWith('https://')) {
-                                if (dbFoto.includes('r2.dev')) {
-                                    ruteLengkapFoto = `https://wsrv.nl/?url=${encodeURIComponent(dbFoto)}`;
-                                } else {
-                                    ruteLengkapFoto = dbFoto;
-                                }
+                                ruteLengkapFoto = dbFoto.includes('r2.dev') ? `https://wsrv.nl/?url=${encodeURIComponent(dbFoto)}` : dbFoto;
                             } else {
                                 ruteLengkapFoto = `${API_URL}${dbFoto}`;
                             }
@@ -382,8 +471,7 @@
                                             class="bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition active:scale-95">
                                         + Tambah
                                     </button>
-                                </div>
-                            `;
+                                </div>`;
                         } else {
                             styleKartuHabis = 'opacity-60 relative select-none';
                             styleFotoHabis = 'grayscale';
@@ -391,8 +479,7 @@
                             tombolHtml = `
                                 <span class="text-xs font-bold text-red-500 bg-red-50 px-2 py-1 rounded-md border border-red-100">
                                     ${labelKeterangan}
-                                </span>
-                            `;
+                                </span>`;
                         }
 
                         const kartuMenuHtml = `
@@ -412,8 +499,7 @@
                                         ${tombolHtml}
                                     </div>
                                 </div>
-                            </div>
-                        `;
+                            </div>`;
                         containerMenu.insertAdjacentHTML('beforeend', kartuMenuHtml);
                     });
                 })
@@ -423,22 +509,18 @@
                 });
         }
 
-        // Fungsi untuk menyembunyikan/menampilkan upload file bukti bayar
         function togglePaymentMethod(checkbox) {
-            // Pastikan ID pembungkus ini sesuai dengan ID di elemen HTML Anda
             const wrapperUpload = document.getElementById('wrapper-upload-bukti');
             const fileInput = document.getElementById('cust-payment-proof');
 
             if (checkbox.checked) {
-                // Jika CASH dicentang: sembunyikan upload & hapus status wajib (required)
                 if (wrapperUpload) wrapperUpload.classList.add('hidden');
                 if (fileInput) {
                     fileInput.removeAttribute('required');
-                    fileInput.required = false; // Memastikan via property browser
-                    fileInput.value = "";       // Reset pilihan file jika ada
+                    fileInput.required = false;
+                    fileInput.value = "";
                 }
             } else {
-                // Jika CASH tidak dicentang: munculkan kembali & wajibkan upload
                 if (wrapperUpload) wrapperUpload.classList.remove('hidden');
                 if (fileInput) {
                     fileInput.setAttribute('required', 'required');
@@ -447,25 +529,15 @@
             }
         }
 
-        // UPDATE PADA FUNGSI KIRIM PESANAN
         function kirimPesananKeSistem(event) {
             event.preventDefault();
-
-            if (!isShopOpen) {
-                alert("Gagal memproses. Warung sedang tutup!");
-                return;
-            }
-            
-            if (keranjang.length === 0) {
-                alert("Keranjang belanja Anda kosong!");
-                return;
-            }
+            if (!isShopOpen) { alert("Gagal memproses. Warung sedang tutup!"); return; }
+            if (keranjang.length === 0) { alert("Keranjang belanja Anda kosong!"); return; }
             
             const btnSubmit = document.getElementById('btn-submit-order');
             const fileInput = document.getElementById('cust-payment-proof');
             const isCash = document.getElementById('pay-cash').checked;
             
-            // Validasi file HANYA jika TIDAK bayar cash
             if (!isCash && fileInput.files.length === 0) {
                 alert("Silakan unggah bukti pembayaran terlebih dahulu!");
                 return;
@@ -477,7 +549,6 @@
             fetch(`${API_URL}/api/products?shop=${currentShopSlug}`)
             .then(res => res.json())
             .then(response => {
-                // ... (Logika pengecekan stok bawaan Anda sebelumnya tetap di sini) ...
                 const daftarProdukServer = response.data || [];
                 let adaMenuHabis = false;
                 let namaMenuHabis = [];
@@ -498,9 +569,7 @@
                     return; 
                 }
 
-                // PROSES KIRIM DATA
                 btnSubmit.innerText = "⏳ Sedang Mengirim Pesanan...";
-
                 const nama = document.getElementById('cust-name').value;
                 const phone = document.getElementById('cust-phone').value;
                 const table = document.getElementById('cust-table').value;
@@ -518,19 +587,13 @@
                 formData.append('table_or_address', table);
                 formData.append('total_price', totalHarga);
                 formData.append('items', JSON.stringify(itemsValid));
-                
-                // Kirim metode pembayaran baru
                 formData.append('payment_method', isCash ? 'cash' : 'transfer');
                 
-                // File hanya dimasukkan jika transfer
                 if (!isCash && fileInput.files.length > 0) {
                     formData.append('payment_proof', fileInput.files[0]);
                 }
 
-                return fetch(`${API_URL}/api/orders`, {
-                    method: 'POST',
-                    body: formData
-                });
+                return fetch(`${API_URL}/api/orders`, { method: 'POST', body: formData });
             })
             .then(res => { if (res) return res.json(); })
             .then(data => {
@@ -558,7 +621,6 @@
         function toggleInfoPembayaran() {
             const infoDiv = document.getElementById('info-pembayaran');
             const panah = document.getElementById('panah-pembayaran');
-            
             if (infoDiv.classList.contains('hidden')) {
                 infoDiv.classList.remove('hidden');
                 panah.innerText = '▲';
