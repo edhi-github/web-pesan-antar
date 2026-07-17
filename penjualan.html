@@ -159,7 +159,27 @@
         // ==========================================
         // KONFIGURASI NOTIFIKASI SUARA (BARU)
         // ==========================================
-        const suaraPesananBaru = new Audio('https://raw.githubusercontent.com/rafaelreis-hotmart/Audio-Notification-Timer/master/classic.mp3');
+        // Ganti baris "const suaraPesananBaru = ..." dengan fungsi ini:
+        function putarBunyiBeep() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                oscillator.type = 'sine'; // Jenis gelombang suara
+                oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // Frekuensi nada (880Hz = Nada A5)
+                gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime); // Volume (0.0 sampai 1.0)
+
+                oscillator.start();
+                // Berhenti berbunyi setelah 0.3 detik
+                oscillator.stop(audioCtx.currentTime + 0.3); 
+            } catch (err) {
+                console.log("Gagal memutar beep otomatis:", err);
+            }
+        }
         let jumlahPesananBaruSebelumnya = 0;
 
         if (!currentShopSlug) {
@@ -195,9 +215,7 @@
                 // DETEKSI DAN MAIN KAN SUARA NOTIFIKASI (BARU)
                 // -----------------------------------------------------------
                 if (listBaru.length > jumlahPesananBaruSebelumnya) {
-                    suaraPesananBaru.play().catch(err => {
-                        console.log("Autoplay diblokir browser, butuh klik pertama kali di area halaman:", err);
-                    });
+                   putarBunyiBeep();
                 }
                 // Simpan total terbaru untuk perbandingan pada interval berikutnya
                 jumlahPesananBaruSebelumnya = listBaru.length;
