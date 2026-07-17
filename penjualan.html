@@ -4,7 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dapur Utama - Rekap Pesanan Masuk</title>
-    <!-- Menggunakan Tailwind CSS untuk layouting cepat -->
+    
+    <!-- SCRIPT PROTEKSI LOGIN -->
+    <script>
+        const checkLogin = localStorage.getItem('isLoggedIn');
+        const savedSlug = localStorage.getItem('current_shop_slug');
+        const urlParamsCheck = new URLSearchParams(window.location.search);
+        const urlSlug = urlParamsCheck.get('shop');
+
+        // Jika tidak ada status login ATAU slug di URL berbeda dengan slug hak aksesnya
+        if (!checkLogin || checkLogin !== 'true' || !urlSlug || urlSlug !== savedSlug) {
+            alert("Akses Ditolak! Silakan login terlebih dahulu.");
+            window.location.href = "login.html"; // Sesuaikan dengan nama file login Anda
+        }
+    </script>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- STYLE KHUSUS UNTUK CETAK STRUK THERMAL VIA WINDOWS.PRINT -->
@@ -170,7 +184,6 @@
                 
                 // Fungsi pembantu untuk membuat kepakan suara dual-tone
                 function buatPulsaSuara(waktuMulai) {
-                    // Kita pakai dua oscillator sekaligus agar suaranya "tebal" dan unik
                     const osc1 = audioCtx.createOscillator();
                     const osc2 = audioCtx.createOscillator();
                     const gainNode = audioCtx.createGain();
@@ -182,7 +195,6 @@
                     osc1.type = 'sine';
                     osc2.type = 'sine';
                     
-                    // Kombinasi dua frekuensi ini menghasilkan efek getaran alarm yang khas
                     osc1.frequency.setValueAtTime(800, waktuMulai); 
                     osc2.frequency.setValueAtTime(850, waktuMulai); 
 
@@ -196,10 +208,7 @@
                     osc2.stop(waktuMulai + 0.15);
                 }
 
-                // Jalankan bunyi pulsa pertama segera
                 buatPulsaSuara(audioCtx.currentTime);
-                
-                // Jalankan bunyi pulsa kedua setelah jeda 0.2 detik (efek: "tet-tet!")
                 buatPulsaSuara(audioCtx.currentTime + 0.2);
 
             } catch (err) {
@@ -207,7 +216,7 @@
             }
         }
         let jumlahPesananBaruSebelumnya = 0;
-        let isFirstLoad = true; // Penanda untuk membungkam alarm saat pertama kali web dibuka
+        let isFirstLoad = true; 
 
         if (!currentShopSlug) {
             alert("Peringatan: URL tidak memiliki parameter warung. Contoh akses yang benar: penjualan.html?shop=warung-bu-kris");
@@ -217,52 +226,43 @@
             document.getElementById('link-admin-stok').href = `admin.html?shop=${currentShopSlug}`;
         }
 
-        // Ambil data pertama kali & set interval 10 detik
         ambilDataDapur();
         setInterval(ambilDataDapur, 10000);
 
-        // Fungsi Master untuk menarik semua data dan merender tab yang aktif
         function ambilDataDapur() {
             if (!currentShopSlug) return;
 
-            // Kita gunakan endpoint active yang menarik status 'baru' dan 'proses'
-            fetch(`${API_URL}/api/orders/active?shop=${currentShopSlug}`)
+            // Fetch 1: Ambil data aktif dengan x-shop-id header[cite: 5]
+            fetch(`${API_URL}/api/orders/active?shop=${currentShopSlug}`, {
+                headers: {
+                    'x-shop-id': localStorage.getItem('shop_id')
+                }
+            })
             .then(res => res.json())
             .then(orders => {
                 if (!Array.isArray(orders)) return;
 
-                // Simpan ke cache lokal
                 rawOrdersData = orders;
 
-                // Kelompokkan data lokal untuk menghitung total badge
                 const listBaru = orders.filter(o => o.status === 'baru');
                 const listProses = orders.filter(o => o.status === 'proses');
 
-                // -----------------------------------------------------------
-                // DETEKSI DAN MAIN KAN SUARA NOTIFIKASI (YANG SUDAH DIPERBAIKI)
-                // -----------------------------------------------------------
                 if (listBaru.length > jumlahPesananBaruSebelumnya) {
-                    // JIKA ini bukan load pertama kali, barulah bunyi beep diputar
                     if (!isFirstLoad) {
                         putarBunyiBeep();
                     }
                 }
 
-                // Setelah pengambilan data pertama sukses, matikan flag isFirstLoad
                 if (isFirstLoad) {
                     isFirstLoad = false;
                 }
 
-                // Simpan total terbaru untuk perbandingan pada interval berikutnya
                 jumlahPesananBaruSebelumnya = listBaru.length;
-                // -----------------------------------------------------------
 
-                // Update angka badge di header tab
                 document.getElementById('badge-baru').innerText = listBaru.length;
                 document.getElementById('badge-proses').innerText = listProses.length;
                 document.getElementById('total-antrean').innerText = listBaru.length + listProses.length;
 
-                // Render tampilan jika yang aktif adalah tab 'baru' atau 'proses'
                 if (tabAktifSekarang === 'baru') {
                     renderKartuPesanan(listBaru, 'baru');
                 } else if (tabAktifSekarang === 'proses') {
@@ -272,7 +272,6 @@
             .catch(err => console.error('Gagal memuat antrean aktif:', err));
         }
 
-        // Fungsi untuk menggambar kartu ke dalam container utama
         function renderKartuPesanan(dataOrders, tipeTab) {
             const container = document.getElementById('container-pesanan');
             
@@ -299,13 +298,11 @@
                     `;
                 });
 
-                // Deteksi metode pembayaran
                 const metodeBayar = order.payment_method ? order.payment_method.toLowerCase() : 'transfer';
                 const dbBukti = order.payment_proof_url;
                 
                 let htmlBuktiBayar = '';
 
-                // JIKA BAYAR CASH
                 if (metodeBayar === 'cash') {
                     htmlBuktiBayar = `
                         <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center justify-between mt-2 select-none">
@@ -319,7 +316,6 @@
                         </div>
                     `;
                 } else {
-                    // JIKA BAYAR TRANSFER
                     let ruteLengkapBukti = ''; 
                     if (dbBukti) {
                         if (dbBukti.startsWith('http://') || dbBukti.startsWith('https://')) {
@@ -353,8 +349,6 @@
                     }
                 }
 
-                // Untuk tab selesai/reject, kita gunakan updated_at. 
-                // Sedangkan untuk tab baru/proses, kita gunakan created_at agar tahu berapa lama antrean berjalan.
                 const waktuAcuan = (tipeTab === 'selesai' || tipeTab === 'reject') 
                     ? (order.updated_at || order.created_at) 
                     : order.created_at;
@@ -362,13 +356,11 @@
                 const menitLalu = Math.floor((new Date() - new Date(waktuAcuan)) / 60000);
                 let teksWaktu = menitLalu < 1 ? 'Baru saja' : `${menitLalu} mnt lalu`;
 
-                // Khusus untuk riwayat selesai & reject, menampilkan jam eksekusinya langsung
                 if (tipeTab === 'selesai' || tipeTab === 'reject') {
                     const jamFormat = new Date(waktuAcuan).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
                     teksWaktu = `Jam ${jamFormat}`;
                 }
 
-                // Set up visual kartu & tombol dinamis berdasarkan tab aktif
                 let kartuStyle = "bg-white border border-gray-200";
                 let htmlTombolAksi = "";
                 let labelStatus = "";
@@ -396,7 +388,6 @@
                     `;
                 } else if (tipeTab === 'selesai') {
                     labelStatus = `<span class="bg-green-500 text-white text-[10px] font-black px-2 py-0.5 rounded-md uppercase">Selesai</span>`;
-                    // TOMBOL TAMBAHAN DI TAB SELESAI UNTUK RE-PRINT STRUK BILA DIPERLUKAN
                     htmlTombolAksi = `
                         <button onclick="siapkanDanCetakStruk('${order.id}')" class="w-full bg-gray-100 hover:bg-gray-200 border border-gray-300 text-gray-700 font-bold text-xs py-2 rounded-xl shadow-sm transition">
                             🖨️ Cetak Ulang Struk
@@ -443,11 +434,9 @@
             });
         }
 
-        // Ganti Tab & Render Data yang sesuai
         function gantiTab(tab) {
             tabAktifSekarang = tab;
             
-            // Reset style semua tombol tab
             const tabs = {
                 baru: document.getElementById('tab-baru'),
                 proses: document.getElementById('tab-proses'),
@@ -459,7 +448,6 @@
                 tabs[key].className = "flex-1 min-w-[70px] text-center py-3 text-[11px] font-medium border-b-4 border-transparent text-gray-400 hover:text-gray-600 transition";
             }
 
-            // Aktifkan tab terpilih
             tabs[tab].className = "flex-1 min-w-[70px] text-center py-3 text-[11px] font-bold border-b-4 border-orange-500 text-orange-600 bg-orange-50/50";
 
             if (tab === 'baru' || tab === 'proses') {
@@ -471,27 +459,27 @@
             }
         }
 
-        // Ambil riwayat selesai atau reject (Endpoint dinamis atau difilter)
         function ambilSelesaiAtauReject(statusTarget) {
             if (!currentShopSlug) return;
 
             let url = `${API_URL}/api/orders/history?shop=${currentShopSlug}`;
             
-            fetch(url)
+            // Fetch 2: Ambil riwayat dengan x-shop-id header[cite: 5]
+            fetch(url, {
+                headers: {
+                    'x-shop-id': localStorage.getItem('shop_id')
+                }
+            })
             .then(res => res.json())
             .then(data => {
                 if (!Array.isArray(data)) return;
 
-                // Simpan juga data riwayat ke cache agar bisa di-print ulang dari tab Selesai
                 rawOrdersData = data;
-                
-                // Panggil loader render
                 renderKartuPesanan(data.filter(o => o.status === statusTarget), statusTarget);
             })
             .catch(err => console.error('Gagal memuat data riwayat:', err));
         }
 
-        // Fungsi Update Status (Mengarah ke endpoint PATCH baru)
         function updateStatusPesanan(idOrder, statusBaru) {
             let pesanKonfirmasi = "";
             if (statusBaru === 'proses') {
@@ -503,18 +491,21 @@
             }
 
             if (confirm(pesanKonfirmasi)) {
+                // Fetch 3: Update status pesanan dengan x-shop-id header[cite: 5]
                 fetch(`${API_URL}/api/orders/${idOrder}/status`, {
                     method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'x-shop-id': localStorage.getItem('shop_id')
+                    },
                     body: JSON.stringify({ status: statusBaru })
                 })
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        // Jika status diset ke Selesai, trigger cetak struk otomatis terlebih dahulu
                         if (statusBaru === 'selesai') {
                             siapkanDanCetakStruk(idOrder);
-                            gantiTab('selesai'); // Pindahkan fokus ke tab Selesai
+                            gantiTab('selesai'); 
                         } else if (statusBaru === 'proses') {
                             gantiTab('proses'); 
                         } else if (statusBaru === 'reject') {
@@ -530,9 +521,6 @@
             }
         }
 
-        // =========================================================================
-        // FUNGSI UTAMA: MENYIAPKAN DATA & MEMBUKA DIALOG PRINT 
-        // =========================================================================
         function siapkanDanCetakStruk(orderId) {
             const order = rawOrdersData.find(o => {
                 const idTarget = o.id || o.order_id;
@@ -575,13 +563,17 @@
             window.print();
         }
 
-        // Kontrol Status Buka/Tutup Warung
         cekStatusWarung();
         let statusWarungSekarang = 1;
 
         function cekStatusWarung() {
             if (!currentShopSlug) return;
-            fetch(`${API_URL}/api/shops/status?shop=${currentShopSlug}`)
+            // Fetch 4: Cek status warung dengan x-shop-id header[cite: 5]
+            fetch(`${API_URL}/api/shops/status?shop=${currentShopSlug}`, {
+                headers: {
+                    'x-shop-id': localStorage.getItem('shop_id')
+                }
+            })
             .then(res => res.json())
             .then(response => {
                 if (response.success) {
@@ -608,9 +600,13 @@
             const pesanAksi = statusBaru == 1 ? "membuka" : "menutup";
 
             if (confirm(`Apakah Anda yakin ingin ${pesanAksi} warung?`)) {
+                // Fetch 5: Toggle buka tutup dengan x-shop-id header[cite: 5]
                 fetch(`${API_URL}/api/shops/toggle-status`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'x-shop-id': localStorage.getItem('shop_id')
+                    },
                     body: JSON.stringify({ shop: currentShopSlug, is_open: statusBaru })
                 })
                 .then(res => res.json())
@@ -631,7 +627,6 @@
 
         async function requestWakeLock() {
             try {
-                // Hanya berjalan jika browser mendukung
                 if ('wakeLock' in navigator) {
                     wakeLock = await navigator.wakeLock.request('screen');
                     console.log('Layar dikunci agar tetap menyala!');
@@ -641,29 +636,28 @@
             }
         }
 
-        // Jalankan fungsi saat halaman diklik pertama kali oleh user
         document.addEventListener('click', () => {
             if (!wakeLock) {
                 requestWakeLock();
             }
         });
 
-        // Jika user sempat pindah aplikasi lalu kembali lagi, kunci lagi layarnya
         document.addEventListener('visibilitychange', async () => {
             if (wakeLock !== null && document.visibilityState === 'visible') {
                 requestWakeLock();
             }
         });
 
-        // =========================================================================
-        // LOGIKA SCRIPT BARU UNTUK MANAGEMEN SETTINGAN TOKO
-        // =========================================================================
         function bukaModalSetting() {
             if (!currentShopSlug) return;
             document.getElementById('setting-modal').classList.remove('hidden');
 
-            // Ambil info dari server untuk diset ke value form modal
-            fetch(`${API_URL}/api/shops/settings?shop=${currentShopSlug}`)
+            // Fetch 6: Ambil setting toko dengan x-shop-id header[cite: 5]
+            fetch(`${API_URL}/api/shops/settings?shop=${currentShopSlug}`, {
+                headers: {
+                    'x-shop-id': localStorage.getItem('shop_id')
+                }
+            })
                 .then(res => res.json())
                 .then(res => {
                     if (res.success && res.data) {
@@ -707,8 +701,12 @@
                 formData.append('qris_image', qrisFile);
             }
 
+            // Fetch 7: Simpan setting toko (Multipart data) dengan x-shop-id header[cite: 5]
             fetch(`${API_URL}/api/shops/settings`, {
                 method: 'PUT',
+                headers: {
+                    'x-shop-id': localStorage.getItem('shop_id')
+                },
                 body: formData
             })
             .then(res => res.json())
@@ -729,6 +727,11 @@
                 btn.disabled = false;
                 btn.innerText = "Simpan Pengaturan";
             });
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = "login.html";
         }
     </script>
 

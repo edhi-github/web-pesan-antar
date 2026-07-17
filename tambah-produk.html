@@ -4,6 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Penjual - Tambah/Edit Produk </title>
+    
+    <!-- SCRIPT PROTEKSI LOGIN -->
+    <script>
+        if (localStorage.getItem('isLoggedIn') !== 'true' || new URLSearchParams(window.location.search).get('shop') !== localStorage.getItem('current_shop_slug')) {
+            alert("Akses Ditolak!");
+            window.location.href = "login.html";
+        }
+    </script>
+    
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 text-gray-800 antialiased font-sans">
@@ -12,7 +21,6 @@
     <div class="max-w-md mx-auto min-h-screen bg-white shadow-md flex flex-col justify-between">
         <!-- HEADER -->
         <header class="p-4 border-b border-gray-200 flex items-center gap-3">
-            <!-- Diubah default ID tujuannya ke admin-dapur.html / panel dapur sebelumnya -->
             <a id="link-kembali-admin" href="#" class="text-gray-500 hover:text-gray-700 text-xl font-bold">⬅️</a>
             <div>
                 <h1 id="title-page" class="text-base font-black text-gray-900">MANAJEMEN MENU</h1>
@@ -49,12 +57,7 @@
                     </div>
                 </div>
 
-                <!-- Kategori & Harga -->
-                <div class="grid grid-cols-2 gap-3">
-                    ...
-                </div>
-
-                <!-- Estimasi Stok Produk (TAMBAHAN BARU) -->
+                <!-- Estimasi Stok Produk -->
                 <div>
                     <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Estimasi Stok Awal</label>
                     <input type="number" id="stok" required value="20" placeholder="Default: 20" 
@@ -122,7 +125,6 @@
 
     <!-- SCRIPT LOGIK INTERAKSI -->
     <script>
-        // Gunakan API URL dari config.js secara fleksibel
         const API_BASE = `${API_URL}/api/products`;        
         const urlParams = new URLSearchParams(window.location.search);
         const productId = urlParams.get('id');
@@ -135,7 +137,6 @@
             if (!shopSlug) {
                 alert('Peringatan: Slug Warung (?shop=...) tidak ditemukan.');
             } else {
-                // Diarahkan kembali ke halaman panel dapur sebelumnya (bukan ke admin.html kasar)
                 document.getElementById('link-kembali-admin').href = `admin.html?shop=${shopSlug}`;
                 localStorage.setItem('current_shop_slug', shopSlug);
             }
@@ -169,8 +170,6 @@
         function pilihKamera() { tutupPilihanMedia(); document.getElementById('foto_kamera').click(); }
         function pilihGaleri() { tutupPilihanMedia(); document.getElementById('foto_galeri').click(); }
 
-        
-
         function previewFoto(input) {
             const Skinner = document.getElementById('tempat-instruksi');
             const kotakPreview = document.getElementById('kotak-preview');
@@ -190,7 +189,12 @@
 
         // FUNGSI UTAMA LOAD DATA EDIT (DENGAN MEMBACA STOK)
         function loadProductData(id) {
-            fetch(`${API_BASE}/${id}`)
+            // Fetch 1: Ambil info produk tunggal dengan x-shop-id header[cite: 7]
+            fetch(`${API_BASE}/${id}`, {
+                headers: {
+                    'x-shop-id': localStorage.getItem('shop_id')
+                }
+            })
                 .then(res => {
                     if(!res.ok) throw new Error('Gagal mengambil data produk');
                     return res.json();
@@ -202,7 +206,7 @@
                     document.getElementById('kategori').value = produk.category || produk.kategori || 'Makanan';
                     document.getElementById('harga').value = produk.price || produk.harga || '';
                     document.getElementById('deskripsi').value = produk.description || produk.deskripsi || '';
-                    document.getElementById('stok').value = produk.stock !== undefined ? produk.stock : 20; // Load Stock
+                    document.getElementById('stok').value = produk.stock !== undefined ? produk.stock : 20; 
                     
                     const dbFoto = produk.image_url || produk.foto || produk.foto_produk;
                     if (dbFoto) {
@@ -227,7 +231,7 @@
                 });
         }
 
-        // FUNGSI MULTIPART FORM DATA SUBMIT (DENGAN MENGIRIMKAN STOK)
+        // FUNGSI MULTIPART FORM DATA SUBMIT
         function simpanProduk(event) {
             event.preventDefault();
 
@@ -252,7 +256,7 @@
             formData.append('category', document.getElementById('kategori').value);
             formData.append('price', document.getElementById('harga').value);
             formData.append('description', document.getElementById('deskripsi').value);
-            formData.append('stock', document.getElementById('stok').value); // Kirim parameter stock
+            formData.append('stock', document.getElementById('stok').value); 
             
             if (activeFile) {
                 formData.append('image', activeFile);
@@ -267,8 +271,12 @@
                 formData.append('_method', 'PUT');
             }
 
+            // Fetch 2: Simpan produk baru / update data dengan x-shop-id header[cite: 7]
             fetch(url, {
                 method: method,
+                headers: {
+                    'x-shop-id': localStorage.getItem('shop_id')
+                },
                 body: formData
             })
             .then(res => {

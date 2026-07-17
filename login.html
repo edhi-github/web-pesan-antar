@@ -4,6 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dapur Utama - Login Internal </title>
+    
+    <!-- Posisikan Cek Otomatis di Sini (Di dalam Head agar langsung dieksekusi sebelum render body) -->
+    <script>
+        const checkLogin = localStorage.getItem('isLoggedIn');
+        const savedSlug = localStorage.getItem('current_shop_slug');
+
+        if (checkLogin === 'true' && savedSlug) {
+            // Jika sudah punya sesi login yang valid, langsung alihkan ke penjualan.html
+            window.location.href = `penjualan.html?shop=${savedSlug}`;
+        }
+    </script>
+
     <!-- Menggunakan Tailwind CSS agar konsisten dengan penjualan.html -->
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -48,12 +60,12 @@
         const urlParams = new URLSearchParams(window.location.search);
         let currentShopSlug = urlParams.get('shop');
 
-        // 2. Validasi parameter shop (Sekarang hanya bersifat opsional/peringatan, tidak mengunci login)
+        // 2. Validasi parameter shop
         if (!currentShopSlug) {
             console.warn("Peringatan: URL login tidak memiliki parameter warung.");
             document.getElementById('nama-warung-login').innerText = `LOGIN INTERNAL DAPUR`;
         } else {
-            // Ubah teks judul login sesuai nama warung secara dinamins
+            // Ubah teks judul login sesuai nama warung secara dinamis
             document.getElementById('nama-warung-login').innerText = `LOGIN DAPUR ${currentShopSlug.replace(/-/g, ' ')}`;
         }
 
@@ -67,7 +79,6 @@
             
             errorDiv.classList.add('hidden');
 
-            // Payload login (shop boleh null/empty jika tidak ada di URL)
             const payload = {
                 username: usernameInput,
                 password: passwordInput,
@@ -85,8 +96,14 @@
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    // Mengambil slug asli yang dikembalikan oleh backend jika di URL awal kosong
                     const targetSlug = currentShopSlug || data.slug;
+
+                    // SIMPAN DATA AUTENTIKASI KE LOCALSTORAGE
+                    localStorage.setItem('isLoggedIn', 'true');
+                    localStorage.setItem('current_shop_slug', targetSlug);
+                    if (data.shop_id) {
+                        localStorage.setItem('shop_id', data.shop_id);
+                    }
 
                     // Alihkan ke penjualan.html membawa parameter shop yang valid
                     window.location.href = `penjualan.html?shop=${targetSlug}`;

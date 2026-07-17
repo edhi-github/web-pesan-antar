@@ -4,6 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel Dapur - Kelola Stok Menu</title>
+    
+    <!-- SCRIPT PROTEKSI LOGIN -->
+    <script>
+        if (localStorage.getItem('isLoggedIn') !== 'true' || new URLSearchParams(window.location.search).get('shop') !== localStorage.getItem('current_shop_slug')) {
+            alert("Akses Ditolak!");
+            window.location.href = "login.html";
+        }
+    </script>
+    
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 text-gray-800 antialiased font-sans">
@@ -72,11 +81,16 @@
             muatProdukAdmin();
         });
 
-        // 1. FUNGSI MEMBACA PRODUK BERDASARKAN TENANT/SHOP (DIUPDATE STOK UI)
+        // 1. FUNGSI MEMBACA PRODUK
         function muatProdukAdmin() {
             const containerAdmin = document.getElementById('admin-menu-list');
 
-            fetch(`${API_URL}/api/products?shop=${currentShopSlug}`)
+            // Fetch 1: Muat Produk dengan x-shop-id header[cite: 6]
+            fetch(`${API_URL}/api/products?shop=${currentShopSlug}`, {
+                headers: {
+                    'x-shop-id': localStorage.getItem('shop_id')
+                }
+            })
                 .then(res => res.json())
                 .then(response => {
                     if (!response.success || !response.data || response.data.length === 0) {
@@ -108,7 +122,6 @@
                             }
                         }
 
-                        // Produk habis jika is_available = 0 ATAU stock = 0
                         const tersedia = (produk.is_available !== 0 && produk.is_available !== '0' && produk.is_available !== false) && dbStok > 0;
                         
                         let tombolAksiHtml = '';
@@ -159,17 +172,19 @@
                     });
                 })
                 .catch(err => {
-                    console.error('Gagal memuat panel admin:', err);
+                    console.error('Gagal memuat data menu:', err);
                     containerAdmin.innerHTML = '<div class="text-center py-10 text-red-500 text-sm">Gagal terhubung ke server.</div>';
                 });
         }
 
         // FUNGSI UPDATE STOK LANGSUNG DARI INPUTAN
         function updateStokLangsung(productId, stockValue) {
+            // Fetch 2: Update nominal stok dengan x-shop-id header[cite: 6]
             fetch(`${API_URL}/api/products/${productId}/stock`, {
                 method: 'PUT',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'x-shop-id': localStorage.getItem('shop_id')
                 },
                 body: JSON.stringify({ stock: stockValue })
             })
@@ -186,40 +201,14 @@
             });
         }
 
-        // 2. FUNGSI TEMBAK PERUBAHAN STATUS KE BACKEND
+        // 2. FUNGSI TEMBAK PERUBAHAN SAKELAR STATUS/TOMBOL TERSEDIA-HABIS KERSAJAMA STOK
         function ubahStatusStok(productId, statusBaru) {
-            // Jika diset ke "Tersedia" kembali, default-kan stok kembali minimal jadi 20 jika tadinya 0
-            const inputStok = statusBaru === 1 ? 20 : 0;
-            
-            fetch(`${API_URL}/api/products/${productId}/stock`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ 
-                    stock: inputStok
-                })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    muatProdukAdmin();
-                } else {
-                    alert('Gagal mengubah status: ' + data.message);
-                }
-            })
-            .catch(err => {
-                console.error('Error saat update status:', err);
-                alert('Gagal tersambung ke server untuk mengubah stok.');
-            });
-        }
-
-        // 2. FUNGSI TEMBAK PERUBAHAN STATUS KE BACKEND
-        function ubahStatusStok(productId, statusBaru) {
+            // Fetch 3: Menggunakan endpoint toggle dengan x-shop-id header[cite: 6]
             fetch(`${API_URL}/api/products/${productId}/toggle-available`, {
                 method: 'PUT',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'x-shop-id': localStorage.getItem('shop_id')
                 },
                 body: JSON.stringify({ 
                     is_available: statusBaru,
