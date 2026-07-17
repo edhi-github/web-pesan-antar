@@ -611,6 +611,34 @@
                 .catch(err => alert('Terjadi kesalahan koneksi ke server.'));
             }
         }
+
+        let wakeLock = null;
+
+        async function requestWakeLock() {
+            try {
+                // Hanya berjalan jika browser mendukung
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('Layar dikunci agar tetap menyala!');
+                }
+            } catch (err) {
+                console.log(`Gagal mengunci layar: ${err.message}`);
+            }
+        }
+
+        // Jalankan fungsi saat halaman diklik pertama kali oleh user
+        document.addEventListener('click', () => {
+            if (!wakeLock) {
+                requestWakeLock();
+            }
+        });
+
+        // Jika user sempat pindah aplikasi lalu kembali lagi, kunci lagi layarnya
+        document.addEventListener('visibilitychange', async () => {
+            if (wakeLock !== null && document.visibilityState === 'visible') {
+                requestWakeLock();
+            }
+        });
     </script>
 
     <!-- 3. MODAL POPUP UNTUK MEMPERBESAR BUKTI BAYAR -->
