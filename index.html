@@ -276,7 +276,7 @@
                             <div class="bg-gray-50 border border-gray-200 rounded-xl p-3.5 space-y-2 shadow-sm">
                                 <div class="flex justify-between items-center border-b border-gray-200 pb-1.5">
                                     <div>
-                                        <span class="font-bold text-gray-900">#ORD-${order.id} (${order.customer_name})</span>
+                                        <span class="font-bold text-gray-900">#ORD-${order.id} (${order.customer_name.slice(0,16)})</span>
                                         <span class="text-gray-400 text-[10px] ml-1.5">${timeStr}</span>
                                     </div>
                                     <span class="${statusColor} text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">${statusLabel}</span>
