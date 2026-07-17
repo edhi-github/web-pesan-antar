@@ -263,10 +263,6 @@
                     <button type="button" id="btn-share-report" onclick="prosesBagikanLaporan()" class="w-1/3 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-1 text-[11px]">
                         🔗 Share
                     </button>
-
-                    <button type="button" id="btn-cari-report" onclick="prosesCariLaporan()" class="w-1/3 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-1 text-[11px]">
-                        🔗 Share
-                    </button>
                 </div>
             </div>
         </div>
@@ -1215,52 +1211,7 @@
             });
         }*/
 
-        function prosesCariLaporan() {
-            const tglMulai = document.getElementById('lap-tanggal-mulai').value;
-            const tglSelesai = document.getElementById('lap-tanggal-selesai').value;
-
-            if (!tglMulai || !tglSelesai) {
-                alert("Mohon pilih rentang tanggal laporan.");
-                return;
-            }
-
-            // Target wadah tabel di modal Anda (sesuaikan ID-nya dengan yang ada di html Anda)
-            const tabelBody = document.getElementById('laporan-table-body'); 
-            tabelBody.innerHTML = `<tr><td colspan="5" class="text-center py-4">⏳ Memuat data...</td></tr>`;
-
-            fetch(`${API_URL}/api/orders/report?shop=${currentShopSlug}&startDate=${tglMulai}&endDate=${tglSelesai}`, {
-                headers: {
-                    'x-shop-id': localStorage.getItem('shop_id')
-                }
-            })
-            .then(res => res.json())
-            .then(res => {
-                if (!res.success || res.data.length === 0) {
-                    tabelBody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-gray-500">Tidak ada transaksi pada rentang tanggal ini.</td></tr>`;
-                    return;
-                }
-
-                // Render data ke dalam tabel layar
-                let htmlContent = '';
-                res.data.forEach((order, index) => {
-                    htmlContent += `
-                        <tr class="border-b text-[11px]">
-                            <td class="py-2 text-center">${index + 1}</td>
-                            <td class="py-2">#ORD-${order.id}</td>
-                            <td class="py-2">${order.customer_name} (${order.table_or_address})</td>
-                            <td class="py-2">${order.items.map(i => `${i.kuantitas}x ${i.nama}`).join(', ')}</td>
-                            <td class="py-2 text-right">Rp ${Number(order.total_price).toLocaleString('id-ID')}</td>
-                        </tr>
-                    `;
-                });
-                
-                tabelBody.innerHTML = htmlContent;
-            })
-            .catch(err => {
-                console.error(err);
-                tabelBody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-red-500">Gagal memuat data.</td></tr>`;
-            });
-        }
+        
     </script>
 
     <!-- 3. MODAL POPUP UNTUK MEMPERBESAR BUKTI BAYAR -->
