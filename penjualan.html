@@ -207,6 +207,7 @@
             }
         }
         let jumlahPesananBaruSebelumnya = 0;
+        let isFirstLoad = true; // Penanda untuk membungkam alarm saat pertama kali web dibuka
 
         if (!currentShopSlug) {
             alert("Peringatan: URL tidak memiliki parameter warung. Contoh akses yang benar: penjualan.html?shop=warung-bu-kris");
@@ -238,11 +239,20 @@
                 const listProses = orders.filter(o => o.status === 'proses');
 
                 // -----------------------------------------------------------
-                // DETEKSI DAN MAIN KAN SUARA NOTIFIKASI (BARU)
+                // DETEKSI DAN MAIN KAN SUARA NOTIFIKASI (YANG SUDAH DIPERBAIKI)
                 // -----------------------------------------------------------
                 if (listBaru.length > jumlahPesananBaruSebelumnya) {
-                   putarBunyiBeep();
+                    // JIKA ini bukan load pertama kali, barulah bunyi beep diputar
+                    if (!isFirstLoad) {
+                        putarBunyiBeep();
+                    }
                 }
+
+                // Setelah pengambilan data pertama sukses, matikan flag isFirstLoad
+                if (isFirstLoad) {
+                    isFirstLoad = false;
+                }
+
                 // Simpan total terbaru untuk perbandingan pada interval berikutnya
                 jumlahPesananBaruSebelumnya = listBaru.length;
                 // -----------------------------------------------------------
