@@ -761,11 +761,24 @@
                     document.getElementById('set-tax-percentage').value = s.tax_percentage || 0;
                     toggleTaxInput(hasTax);
 
-                    if (s.qris_image_url) {
-                        document.getElementById('preview-qris-aktif').src = s.qris_image_url;
-                    } else {
-                        document.getElementById('preview-qris-aktif').src = "https://via.placeholder.com/100?text=Belum+Ada+QRIS";
+                    // --- Logika Baru untuk Pengambilan Gambar QRIS ---
+                    const dbFoto = s.qris_image_url || s.qris_foto; // Menyesuaikan field dari object shop settings
+                    
+                    let ruteLengkapFoto = 'https://via.placeholder.com/100?text=Belum+Ada+QRIS'; 
+
+                    if (dbFoto) {
+                        if (dbFoto.startsWith('http://') || dbFoto.startsWith('https://')) {
+                            // Jika menggunakan R2, lewatkan wsrv.nl agar tidak terblokir / CORS
+                            ruteLengkapFoto = dbFoto.includes('r2.dev') ? `https://wsrv.nl/?url=${encodeURIComponent(dbFoto)}` : dbFoto;
+                        } else {
+                            // Jika path lokal backend (misal: /uploads/qris.png)
+                            ruteLengkapFoto = `${API_URL}${dbFoto}`;
+                        }
                     }
+
+                    // Terapkan ke element preview
+                    document.getElementById('preview-qris-aktif').src = ruteLengkapFoto;
+                    // --------------------------------------------------
                 }
             })
             .catch(err => console.error("Gagal load setting toko:", err));
