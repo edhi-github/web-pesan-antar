@@ -163,37 +163,42 @@
             try {
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 
-                // --- NADA PERTAMA (Rendah) ---
-                const osc1 = audioCtx.createOscillator();
-                const gain1 = audioCtx.createGain();
-                osc1.connect(gain1);
-                gain1.connect(audioCtx.destination);
-                
-                osc1.type = 'sine';
-                osc1.frequency.setValueAtTime(523.25, audioCtx.currentTime); // Nada C5
-                gain1.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                // Melembutkan suara di akhir nada
-                gain1.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15); 
-                
-                osc1.start(audioCtx.currentTime);
-                osc1.stop(audioCtx.currentTime + 0.15);
+                // Fungsi pembantu untuk membuat kepakan suara dual-tone
+                function buatPulsaSuara(waktuMulai) {
+                    // Kita pakai dua oscillator sekaligus agar suaranya "tebal" dan unik
+                    const osc1 = audioCtx.createOscillator();
+                    const osc2 = audioCtx.createOscillator();
+                    const gainNode = audioCtx.createGain();
 
-                // --- NADA KEDUA (Tinggi & Berjarak 0.1 detik) ---
-                const osc2 = audioCtx.createOscillator();
-                const gain2 = audioCtx.createGain();
-                osc2.connect(gain2);
-                gain2.connect(audioCtx.destination);
+                    osc1.connect(gainNode);
+                    osc2.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+
+                    osc1.type = 'sine';
+                    osc2.type = 'sine';
+                    
+                    // Kombinasi dua frekuensi ini menghasilkan efek getaran alarm yang khas
+                    osc1.frequency.setValueAtTime(800, waktuMulai); 
+                    osc2.frequency.setValueAtTime(850, waktuMulai); 
+
+                    gainNode.gain.setValueAtTime(0.25, waktuMulai);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, waktuMulai + 0.15);
+
+                    osc1.start(waktuMulai);
+                    osc2.start(waktuMulai);
+                    
+                    osc1.stop(waktuMulai + 0.15);
+                    osc2.stop(waktuMulai + 0.15);
+                }
+
+                // Jalankan bunyi pulsa pertama segera
+                buatPulsaSuara(audioCtx.currentTime);
                 
-                osc2.type = 'sine';
-                osc2.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); // Nada E5
-                gain2.gain.setValueAtTime(0.3, audioCtx.currentTime + 0.1);
-                gain2.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-                
-                osc2.start(audioCtx.currentTime + 0.1);
-                osc2.stop(audioCtx.currentTime + 0.3);
-                
+                // Jalankan bunyi pulsa kedua setelah jeda 0.2 detik (efek: "tet-tet!")
+                buatPulsaSuara(audioCtx.currentTime + 0.2);
+
             } catch (err) {
-                console.log("Gagal memutar melodi otomatis:", err);
+                console.log("Gagal memutar alarm ganda:", err);
             }
         }
         let jumlahPesananBaruSebelumnya = 0;
