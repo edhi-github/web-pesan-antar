@@ -685,32 +685,41 @@
 
                     // 3. Render Gambar QRIS Dinamis (Dengan Bypass wsrv.nl untuk R2)
                     // =========================================================================
-                    // PERBAIKAN: FORCE BYPASS WSRV.NL UNTUK SUBDOMAIN CLOUDFLARE R2
+                    // FIX: FORCE OVERWRITE GAMBAR DENGAN DELAY AGAR TIDAK DITIMPA SCRIPT LAIN
                     // =========================================================================
 
-                    const qrisImg = document.getElementById('qris-payment-img');
-                    if (qrisImg) {
-                        if (s.qris_image_url) {
-                            let ruteLengkapQris = s.qris_image_url.trim();
+                    // Ambil URL yang sudah diproses proxy
+                    let ruteLengkapQris = s.qris_image_url.trim();
+                    if (ruteLengkapQris.startsWith('http://') || ruteLengkapQris.startsWith('https://')) {
+                        if (ruteLengkapQris.includes('r2.dev')) {
+                            ruteLengkapQris = `https://wsrv.nl/?url=${encodeURIComponent(ruteLengkapQris)}`;
+                        }
+                    } else {
+                        ruteLengkapQris = `${API_URL}${ruteLengkapQris}`;
+                    }
 
-                            // Deteksi apakah URL ini merupakan link eksternal R2
-                            if (ruteLengkapQris.startsWith('http://') || ruteLengkapQris.startsWith('https://')) {
-                                // Jika mengandung domain r2.dev, langsung paksa lewat image proxy wsrv.nl
-                                if (ruteLengkapQris.includes('r2.dev')) {
-                                    ruteLengkapQris = `https://wsrv.nl/?url=${encodeURIComponent(ruteLengkapQris)}`;
-                                }
-                            } else {
-                                // Jalur fallback jika path gambar bersifat relatif (lokal server)
-                                ruteLengkapQris = `${API_URL}${ruteLengkapQris}`;
+                    // Beri delay 300ms untuk memastikan script generator QR lama sudah selesai berjalan
+                    setTimeout(() => {
+                        // Cari tag <img> berdasarkan ID
+                        let qrisImg = document.getElementById('qris-payment-img');
+                        
+                        // Jika ID tidak ditemukan, cari alternatif img di dalam container #info-pembayaran
+                        if (!qrisImg) {
+                            const container = document.getElementById('info-pembayaran');
+                            if (container) {
+                                qrisImg = container.querySelector('img');
                             }
+                        }
 
-                            // Terapkan ke atribut src tag <img>
+                        // Jika elemen gambar ditemukan, paksa ganti src-nya
+                        if (qrisImg) {
+                            console.log("Mengubah QRIS ke gambar baru:", ruteLengkapQris); // Untuk cek di inspect element
+                            qrisImg.removeAttribute('srcset'); // Hapus jika ada srcset bawaan
                             qrisImg.src = ruteLengkapQris;
                         } else {
-                            // Fallback jika belum upload QRIS baru di setting
-                            qrisImg.src = "https://via.placeholder.com/200?text=QRIS+Belum+Diunggah";
+                            console.error("Elemen gambar QRIS tidak ditemukan di DOM.");
                         }
-                    }
+                    }, 300);
                 })
                 .catch(err => console.error("Gagal sinkronisasi setting warung ke pembeli:", err));
         }
