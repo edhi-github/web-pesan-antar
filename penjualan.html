@@ -20,6 +20,8 @@
     </script>
     
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Library SheetJS untuk Ekspor ke Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     
     <!-- STYLE KHUSUS UNTUK CETAK STRUK THERMAL VIA WINDOWS.PRINT -->
     <style>
@@ -84,10 +86,14 @@
             </div>
         </div>
 
-        <div class="max-w-md mx-auto px-4 pb-3">
-            <a id="link-admin-stok" href="admin.html" class="block w-full text-center bg-gray-800 hover:bg-gray-900 text-white text-xs font-bold py-2 px-4 rounded-xl shadow-sm transition active:scale-[0.98]">
-                📦 Kelola Stok Menu (Tersedia / Habis)
+        <!-- RESTRUKTURISASI TOMBOL: KELOLA STOK DAN LAPORAN BERDAMPINGAN -->
+        <div class="max-w-md mx-auto px-4 pb-3 flex gap-2">
+            <a id="link-admin-stok" href="admin.html" class="flex-1 text-center bg-gray-800 hover:bg-gray-900 text-white text-[11px] font-bold py-2.5 px-2 rounded-xl shadow-sm transition active:scale-[0.98]">
+                📦 Kelola Stok Menu
             </a>
+            <button onclick="bukaModalLaporan()" class="flex-1 text-center bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold py-2.5 px-2 rounded-xl shadow-sm transition active:scale-[0.98]">
+                📊 Laporan Transaksi
+            </button>
         </div>
       
         <div class="max-w-md mx-auto px-2 flex border-t border-gray-100 bg-gray-50 overflow-x-auto scrollbar-none">
@@ -214,6 +220,44 @@
                     <button type="submit" id="btn-submit-setting" class="w-1/2 bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 rounded-xl transition">Simpan</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- MODAL POPUP LAPORAN TRANSAKSI (BARU) -->
+    <!-- ========================================================================= -->
+    <div id="laporan-modal" class="fixed inset-0 bg-black/50 z-30 hidden flex items-center justify-center p-4 backdrop-blur-sm no-print">
+        <div class="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="text-base font-bold text-gray-900">📊 Laporan Transaksi</h3>
+                <button onclick="tutupModalLaporan()" class="text-gray-400 hover:text-gray-600 text-2xl font-bold">×</button>
+            </div>
+            
+            <div class="space-y-4 text-xs">
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">Tanggal Mulai</label>
+                    <input type="date" id="lap-tanggal-mulai" class="w-full border border-gray-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-orange-500">
+                </div>
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">Tanggal Selesai</label>
+                    <input type="date" id="lap-tanggal-selesai" class="w-full border border-gray-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-orange-500">
+                </div>
+
+                <div class="bg-gray-50 p-3 rounded-xl border border-gray-200 text-[11px] space-y-1">
+                    <span class="font-bold text-gray-700 block">Keterangan Ekspor:</span>
+                    <ul class="list-disc pl-4 text-gray-600 space-y-1">
+                        <li>Data mencakup transaksi dengan status <strong>Selesai</strong>.</li>
+                        <li>Format file yang diunduh adalah Microsoft Excel (.xlsx).</li>
+                    </ul>
+                </div>
+
+                <div class="border-t pt-3 flex gap-2">
+                    <button type="button" onclick="tutupModalLaporan()" class="w-1/2 bg-gray-150 hover:bg-gray-200 text-gray-700 font-bold py-2.5 rounded-xl transition">Batal</button>
+                    <button type="button" id="btn-export-excel" onclick="prosesUnduhExcel()" class="w-1/2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-1.5">
+                        📥 Save to Excel
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -862,6 +906,103 @@
         function logout() {
             localStorage.clear();
             window.location.href = "login.html";
+        }
+
+        // =========================================================================
+        // JAVASCRIPT CONTROLLER LAPORAN & EKSPOR EXCEL (BARU)
+        // =========================================================================
+        function bukaModalLaporan() {
+            // Set default tanggal hari ini (Format YYYY-MM-DD)
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('lap-tanggal-mulai').value = today;
+            document.getElementById('lap-tanggal-selesai').value = today;
+            
+            document.getElementById('laporan-modal').classList.remove('hidden');
+        }
+
+        function tutupModalLaporan() {
+            document.getElementById('laporan-modal').classList.add('hidden');
+        }
+
+        function prosesUnduhExcel() {
+            const tglMulai = document.getElementById('lap-tanggal-mulai').value;
+            const tglSelesai = document.getElementById('lap-tanggal-selesai').value;
+
+            if (!tglMulai || !tglSelesai) {
+                alert("Mohon pilih rentang tanggal laporan dengan lengkap.");
+                return;
+            }
+
+            const btn = document.getElementById('btn-export-excel');
+            btn.disabled = true;
+            btn.innerText = "⏳ Memproses...";
+
+            // Memanggil API backend baru untuk mendapatkan data laporan
+            fetch(`${API_URL}/api/orders/report?shop=${currentShopSlug}&startDate=${tglMulai}&endDate=${tglSelesai}`, {
+                headers: {
+                    'x-shop-id': localStorage.getItem('shop_id')
+                }
+            })
+            .then(res => res.json())
+            .then(res => {
+                if (!res.success) {
+                    throw new Error(res.message || "Gagal mengambil data laporan dari server.");
+                }
+
+                const reportData = res.data;
+                if (reportData.length === 0) {
+                    alert("Tidak ada transaksi selesai pada rentang tanggal tersebut.");
+                    btn.disabled = false;
+                    btn.innerText = "📥 Save to Excel";
+                    return;
+                }
+
+                // Transformasi data mentah ke format tabel Excel yang rapi
+                const rowsForExcel = [];
+                
+                reportData.forEach(order => {
+                    const tglOrder = new Date(order.created_at).toLocaleString('id-ID');
+                    
+                    // Detail item digabung menjadi 1 baris string jika ingin ringkas, 
+                    // atau bisa dicacah per baris. Format ringkas 1 order 1 baris:
+                    const daftarItem = order.items.map(i => `${i.kuantitas}x ${i.nama} (Rp ${Number(i.subtotal).toLocaleString('id-ID')})`).join(', ');
+
+                    rowsForExcel.push({
+                        "ID Order": `#ORD-${order.id}`,
+                        "Tanggal Selesai": new Date(order.updated_at).toLocaleString('id-ID'),
+                        "Nama Pelanggan": order.customer_name,
+                        "WhatsApp": order.customer_phone,
+                        "Lokasi/Meja": order.table_or_address,
+                        "Metode Bayar": order.payment_method ? order.payment_method.toUpperCase() : 'TRANSFER',
+                        "Daftar Menu": daftarItem,
+                        "Pajak (Rp)": Number(order.tax_amount || 0),
+                        "Total Harga (Rp)": Number(order.total_price || 0)
+                    });
+                });
+
+                // Buat Workbook Excel via SheetJS
+                const worksheet = XLSX.utils.json_to_sheet(rowsForExcel);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Laporan Transaksi");
+
+                // Auto-fit kolom agar rapi
+                const max_author = rowsForExcel.reduce((w, r) => Math.max(w, r["Daftar Menu"].length), 10);
+                worksheet["!cols"] = [ { wch: 12 }, { wch: 20 }, { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: Math.min(max_author, 50) }, { wch: 12 }, { wch: 15 } ];
+
+                // Download File
+                const namaFile = `Laporan_Transaksi_${currentShopSlug}_${tglMulai}_ke_${tglSelesai}.xlsx`;
+                XLSX.writeFile(workbook, namaFile);
+
+                btn.disabled = false;
+                btn.innerText = "📥 Save to Excel";
+                tutupModalLaporan();
+            })
+            .catch(err => {
+                console.error(err);
+                alert("Terjadi kesalahan: " + err.message);
+                btn.disabled = false;
+                btn.innerText = "📥 Save to Excel";
+            });
         }
     </script>
 
