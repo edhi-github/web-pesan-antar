@@ -1,3 +1,4 @@
+<!-- Gantilah file penjualan.html Anda secara penuh dengan kode ini -->
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -12,10 +13,9 @@
         const urlParamsCheck = new URLSearchParams(window.location.search);
         const urlSlug = urlParamsCheck.get('shop');
 
-        // Jika tidak ada status login ATAU slug di URL berbeda dengan slug hak aksesnya
         if (!checkLogin || checkLogin !== 'true' || !urlSlug || urlSlug !== savedSlug) {
             alert("Akses Ditolak! Silakan login terlebih dahulu.");
-            window.location.href = "login.html"; // Sesuaikan dengan nama file login Anda
+            window.location.href = "login.html"; 
         }
     </script>
     
@@ -23,40 +23,34 @@
     
     <!-- STYLE KHUSUS UNTUK CETAK STRUK THERMAL VIA WINDOWS.PRINT -->
     <style>
-        /* Sembunyikan area struk saat di layar normal */
         #struk-cetak {
             display: none;
         }
 
-        /* Aturan khusus saat mode cetak (print) aktif */
         @media print {
-            /* Aturan ukuran kertas fisik printer thermal 58mm */
             @page {
-                size: 58mm auto; /* Lebar kertas 58mm, tinggi otomatis mengikuti panjang struk */
-                margin: 0;       /* Hilangkan margin kertas bawaan browser */
+                size: 58mm auto; 
+                margin: 0;       
             }
 
-            /* Sembunyikan semua elemen dashboard bawaan */
             .no-print {
                 display: none !important;
             }
             
-            /* Atur kontainer utama struk agar presisi di kertas 58mm */
             #struk-cetak {
                 display: block !important;
                 width: 58mm !important;
                 max-width: 58mm !important;
                 margin: 0 auto !important;
-                padding: 4mm !important; /* Beri sedikit jarak aman di sisi kiri-kanan agar tidak terpotong */
+                padding: 4mm !important; 
                 box-sizing: border-box;
                 font-family: 'Courier New', Courier, monospace;
-                font-size: 9px; /* Perkecil sedikit font agar pas di area cetak */
+                font-size: 9px; 
                 line-height: 1.2;
                 color: #000;
                 background-color: #fff;
             }
 
-            /* Pastikan elemen di dalam struk memanfaatkan lebar penuh */
             #struk-cetak * {
                 max-width: 100% !important;
             }
@@ -73,20 +67,16 @@
             <div>
                 <h1 id="nama-warung-header" class="text-lg font-black text-gray-900 tracking-tight uppercase">DAPUR WARUNG</h1>
                 <div class="flex items-center gap-3 mt-1">
-                    <!-- Tombol Status Mini -->
                     <button id="btn-status-warung" onclick="toggleStatusWarung()" class="text-[11px] font-bold px-2.5 py-0.5 rounded-full border transition-all shadow-sm">
                         Status Warung...
                     </button>
-                    <button id="btn-status-warung" onclick="bukaModalSetting()" class="text-[11px] font-bold px-2.5 py-0.5 rounded-full border transition-all shadow-sm">
+                    <button id="btn-setting-warung" onclick="bukaModalSetting()" class="text-[11px] font-bold px-2.5 py-0.5 rounded-full border transition-all shadow-sm bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100">
                         ⚙️ Setting
                     </button>
-                    
                 </div>
             </div>
             
-            <!-- Ringkasan Orderan Aktif Hari Ini (Total dari Baru + Proses) -->
             <div class="flex items-center gap-2">
-                
                 <div class="bg-orange-100 text-orange-800 px-3 py-1.5 rounded-lg text-center">
                     <span id="total-antrean" class="block text-sm font-bold">0</span>
                     <span class="text-[10px] uppercase font-bold tracking-wider">Antrean</span>
@@ -94,14 +84,12 @@
             </div>
         </div>
 
-        <!-- TOMBOL NAVIGASI MENUJU ADMIN.HTML -->
         <div class="max-w-md mx-auto px-4 pb-3">
             <a id="link-admin-stok" href="admin.html" class="block w-full text-center bg-gray-800 hover:bg-gray-900 text-white text-xs font-bold py-2 px-4 rounded-xl shadow-sm transition active:scale-[0.98]">
                 📦 Kelola Stok Menu (Tersedia / Habis)
             </a>
         </div>
       
-        <!-- NAVIGASI TAB UTAMA (4 TAB SEJAJAR) -->
         <div class="max-w-md mx-auto px-2 flex border-t border-gray-100 bg-gray-50 overflow-x-auto scrollbar-none">
             <button onclick="gantiTab('baru')" id="tab-baru" class="flex-1 min-w-[70px] text-center py-3 text-[11px] font-bold border-b-4 border-orange-500 text-orange-600 bg-orange-50/50">
                 🆕 Baru (<span id="badge-baru">0</span>)
@@ -120,17 +108,13 @@
 
     <!-- 2. KONTEN UTAMA DAFTAR KARTU -->
     <main class="max-w-md mx-auto p-4 pb-20 no-print">
-        
-        <!-- CONTAINER UNTUK TIAP STATUS -->
         <div id="container-pesanan" class="space-y-4">
-            <!-- Data dinamis akan dimasukkan ke sini oleh JavaScript -->
             <div class="text-center py-10 text-gray-400 text-sm">Menghubungkan ke server dapur...</div>
         </div>
-
     </main>
 
     <!-- ========================================================================= -->
-    <!-- TEMPLATE STRUK UNTUK DI-PRINT (TERSEMBUNYI DI LAYAR, MUNCUL SAAT PRINT) -->
+    <!-- TEMPLATE STRUK UNTUK DI-PRINT (TERSEMBUNYI DI LAYAR) -->
     <!-- ========================================================================= -->
     <div id="struk-cetak" class="p-2">
         <div style="text-align: center; margin-bottom: 10px;">
@@ -152,8 +136,11 @@
         </div>
         <p style="margin: 0;">--------------------------------</p>
         
-        <div style="text-align: right; margin-top: 5px; font-size: 11px; font-weight: bold;">
-            TOTAL: Rp <span id="struk-total">0</span>
+        <!-- Kalkulasi Struk Thermal -->
+        <div style="text-align: right; margin-top: 5px; line-height: 1.3;">
+            <div id="struk-row-subtotal">Subtotal: Rp <span id="struk-subtotal">0</span></div>
+            <div id="struk-row-pajak">Pajak: Rp <span id="struk-pajak">0</span></div>
+            <div style="font-size: 11px; font-weight: bold; margin-top: 2px;">TOTAL: Rp <span id="struk-total">0</span></div>
         </div>
         
         <div style="text-align: center; margin-top: 15px; font-size: 8px;">
@@ -163,26 +150,85 @@
     </div>
     <!-- ========================================================================= -->
 
+    <!-- ========================================================================= -->
+    <!-- MODAL POPUP SETTING WARUNG (DENGAN PENYELARASAN FITUR PAJAK) -->
+    <!-- ========================================================================= -->
+    <div id="setting-modal" class="fixed inset-0 bg-black/50 z-30 hidden flex items-center justify-center p-4 backdrop-blur-sm no-print">
+        <div class="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="text-base font-bold text-gray-900">⚙️ Pengaturan Warung</h3>
+                <button onclick="tutupModalSetting()" class="text-gray-400 hover:text-gray-600 text-2xl font-bold">×</button>
+            </div>
+            
+            <form id="form-setting-toko" class="space-y-4 text-xs" onsubmit="simpanSettingToko(event)">
+                <!-- Cash Payment Status -->
+                <div class="flex items-center justify-between bg-gray-50 p-2.5 rounded-xl border">
+                    <div>
+                        <span class="font-bold text-gray-800 block">Metode Bayar CASH</span>
+                        <span class="text-[10px] text-gray-500">Aktifkan pembayaran tunai di kasir</span>
+                    </div>
+                    <input type="checkbox" id="set-show-cash" class="w-4 h-4 text-orange-500 rounded focus:ring-orange-500">
+                </div>
+
+                <!-- SETTINGAN PAJAK BARU -->
+                <div class="bg-orange-50/50 border border-orange-200 p-3 rounded-xl space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <span class="font-bold text-gray-800 block">Ada Kena Pajak?</span>
+                            <span class="text-[10px] text-gray-500">Aktifkan pengenaan pajak pesanan</span>
+                        </div>
+                        <input type="checkbox" id="set-has-tax" onchange="toggleTaxInput(this.checked)" class="w-4 h-4 text-orange-500 rounded focus:ring-orange-500">
+                    </div>
+                    
+                    <div id="tax-percentage-wrapper" class="space-y-1">
+                        <label class="block font-bold text-gray-700">Persen Pajak (%)</label>
+                        <p class="text-[9px] text-gray-500">Isikan 0 jika harga menu sudah termasuk pajak. Isikan nilai (misal 10) untuk menambah total tagihan.</p>
+                        <input type="number" id="set-tax-percentage" min="0" max="100" step="0.01" placeholder="Contoh: 10" 
+                            class="w-full border border-gray-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-orange-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <!-- Default reset stock quantity -->
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">Kuantitas Reset Stok Default</label>
+                    <input type="number" id="set-default-stock" min="1" required class="w-full border border-gray-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-orange-500">
+                </div>
+
+                <!-- Bank Info -->
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">Rincian Akun Bank (Satu rekening per baris)</label>
+                    <textarea id="set-bank-info" rows="3" placeholder="Contoh: Bank BCA - 12345678 a/n Warung Kita" class="w-full border border-gray-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-orange-500"></textarea>
+                </div>
+
+                <!-- QRIS Upload -->
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">Ganti Foto QRIS (.JPG / .PNG)</label>
+                    <div class="flex items-center gap-3">
+                        <img id="preview-qris-aktif" src="https://via.placeholder.com/100" class="w-16 h-16 object-contain border rounded-md bg-gray-50">
+                        <input type="file" id="set-qris-image" accept="image/*" class="text-xs file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100">
+                    </div>
+                </div>
+
+                <div class="border-t pt-3 flex gap-2">
+                    <button type="button" onclick="tutupModalSetting()" class="w-1/2 bg-gray-150 hover:bg-gray-200 text-gray-700 font-bold py-2 rounded-xl transition">Batal</button>
+                    <button type="submit" id="btn-submit-setting" class="w-1/2 bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 rounded-xl transition">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <!-- INTERAKSI JAVASCRIPT -->
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const currentShopSlug = urlParams.get('shop');
 
-        // Menyimpan tab yang sedang aktif saat ini
         let tabAktifSekarang = 'baru'; 
-
-        // Cache data orders lokal untuk fungsi print
         let rawOrdersData = [];
 
-        // ==========================================
-        // KONFIGURASI NOTIFIKASI SUARA (BARU)
-        // ==========================================
         function putarBunyiBeep() {
             try {
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 
-                // Fungsi pembantu untuk membuat kepakan suara dual-tone
                 function buatPulsaSuara(waktuMulai) {
                     const osc1 = audioCtx.createOscillator();
                     const osc2 = audioCtx.createOscillator();
@@ -232,7 +278,6 @@
         function ambilDataDapur() {
             if (!currentShopSlug) return;
 
-            // Fetch 1: Ambil data aktif dengan x-shop-id header[cite: 5]
             fetch(`${API_URL}/api/orders/active?shop=${currentShopSlug}`, {
                 headers: {
                     'x-shop-id': localStorage.getItem('shop_id')
@@ -289,11 +334,18 @@
 
             dataOrders.forEach(order => {
                 let htmlItems = '';
+                let totalProdukMurni = 0; // Sub-total sebelum pajak
+                
                 order.items.forEach(item => {
+                    const itemSub = Number(item.harga || 0) * Number(item.kuantitas || 1);
+                    totalProdukMurni += itemSub;
                     htmlItems += `
-                        <div class="border-b border-gray-100 last:border-0 py-1">
-                            <span class="font-bold text-gray-900">${item.kuantitas}x</span> ${item.nama}
-                            ${item.catatan ? `<span class="block text-xs text-red-600 font-medium bg-red-50 px-2 py-0.5 rounded mt-0.5 w-max">📝 Catatan: ${item.catatan}</span>` : ''}
+                        <div class="border-b border-gray-100 last:border-0 py-1 flex justify-between text-xs">
+                            <div>
+                                <span class="font-bold text-gray-900">${item.kuantitas}x</span> ${item.nama}
+                                ${item.catatan ? `<span class="block text-[10px] text-red-600 font-medium bg-red-50 px-2 py-0.5 rounded mt-0.5 w-max">📝 Catatan: ${item.catatan}</span>` : ''}
+                            </div>
+                            <span class="text-gray-500 font-medium">Rp ${itemSub.toLocaleString('id-ID')}</span>
                         </div>
                     `;
                 });
@@ -398,6 +450,30 @@
                     labelStatus = `<span class="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-md uppercase">Rejected</span>`;
                 }
 
+                // Kalkulasi Pajak Kartu Dapur
+                const orderTaxAmount = parseFloat(order.tax_amount || 0);
+                let htmlTaxBreakdown = '';
+                if (orderTaxAmount > 0) {
+                    htmlTaxBreakdown = `
+                        <div class="flex justify-between text-[10px] text-gray-500 mt-1">
+                            <span>Subtotal Menu:</span>
+                            <span>Rp ${totalProdukMurni.toLocaleString('id-ID')}</span>
+                        </div>
+                        <div class="flex justify-between text-[10px] text-gray-500">
+                            <span>Pajak Tambahan:</span>
+                            <span>Rp ${orderTaxAmount.toLocaleString('id-ID')}</span>
+                        </div>
+                    `;
+                } else if (orderTaxAmount === 0 && Number(order.total_price) === totalProdukMurni) {
+                    // Cek apakah ada record has_tax di server (kondisi harga termasuk pajak bisa ditulis begini)
+                    htmlTaxBreakdown = `
+                        <div class="flex justify-between text-[10px] text-green-600">
+                            <span>Keterangan:</span>
+                            <span>Harga termasuk pajak</span>
+                        </div>
+                    `;
+                }
+
                 const kartuHtml = `
                     <div class="${kartuStyle} rounded-2xl p-4 shadow-sm flex flex-col justify-between transition-all">
                         <div>
@@ -420,10 +496,13 @@
                             ${htmlBuktiBayar}
                         </div>
                         <div class="mt-4 pt-3 border-t border-gray-100 flex flex-col gap-3">
-                            <div class="flex justify-between items-center">
-                                <div>
-                                    <span class="text-[10px] text-gray-400 block uppercase font-bold">Total Tagihan</span>
-                                    <span class="text-base font-black text-gray-900">Rp ${order.total_price.toLocaleString('id-ID')}</span>
+                            <div>
+                                ${htmlTaxBreakdown}
+                                <div class="flex justify-between items-center mt-1">
+                                    <div>
+                                        <span class="text-[10px] text-gray-400 block uppercase font-bold">Total Tagihan</span>
+                                        <span class="text-base font-black text-gray-900">Rp ${Number(order.total_price).toLocaleString('id-ID')}</span>
+                                    </div>
                                 </div>
                             </div>
                             ${htmlTombolAksi}
@@ -464,7 +543,6 @@
 
             let url = `${API_URL}/api/orders/history?shop=${currentShopSlug}`;
             
-            // Fetch 2: Ambil riwayat dengan x-shop-id header[cite: 5]
             fetch(url, {
                 headers: {
                     'x-shop-id': localStorage.getItem('shop_id')
@@ -491,7 +569,6 @@
             }
 
             if (confirm(pesanKonfirmasi)) {
-                // Fetch 3: Update status pesanan dengan x-shop-id header[cite: 5]
                 fetch(`${API_URL}/api/orders/${idOrder}/status`, {
                     method: 'PATCH',
                     headers: { 
@@ -521,6 +598,9 @@
             }
         }
 
+        // ==========================================
+        // PROSES CETAK STRUK THERMAL YANG DISINKRONKAN DENGAN PAJAK
+        // ==========================================
         function siapkanDanCetakStruk(orderId) {
             const order = rawOrdersData.find(o => {
                 const idTarget = o.id || o.order_id;
@@ -543,22 +623,44 @@
             
             document.getElementById('struk-pelanggan').innerText = order.customer_name;
             document.getElementById('struk-lokasi').innerText = order.table_or_address;
-            document.getElementById('struk-total').innerText = Number(order.total_price).toLocaleString('id-ID');
 
+            // Render Rincian item menu di struk
             const itemsContainer = document.getElementById('struk-items');
             itemsContainer.innerHTML = '';
+            
+            let totalSubtotalMenu = 0;
+
             order.items.forEach(item => {
-                const hargaItem = item.harga || 0; 
-                const subtotalTeks = hargaItem ? `Rp ${(hargaItem * item.kuantitas).toLocaleString('id-ID')}` : '';
+                const hargaSatuan = parseFloat(item.harga || 0);
+                const itemSub = hargaSatuan * parseFloat(item.kuantitas || 1);
+                totalSubtotalMenu += itemSub;
                 
                 itemsContainer.innerHTML += `
                     <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
                         <span>${item.kuantitas}x ${item.nama}</span>
-                        <span>${subtotalTeks}</span>
+                        <span>Rp ${itemSub.toLocaleString('id-ID')}</span>
                     </div>
                     ${item.catatan ? `<div style="font-size: 8px; font-style: italic; margin-left: 10px; margin-bottom: 4px;">* Catatan: ${item.catatan}</div>` : ''}
                 `;
             });
+
+            const dbTaxAmount = parseFloat(order.tax_amount || 0);
+            const rowSubtotal = document.getElementById('struk-row-subtotal');
+            const rowPajak = document.getElementById('struk-row-pajak');
+
+            // Render Kalkulasi Pajak Struk
+            if (dbTaxAmount > 0) {
+                if (rowSubtotal) rowSubtotal.style.display = 'block';
+                if (rowPajak) rowPajak.style.display = 'block';
+                document.getElementById('struk-subtotal').innerText = totalSubtotalMenu.toLocaleString('id-ID');
+                document.getElementById('struk-pajak').innerText = dbTaxAmount.toLocaleString('id-ID');
+            } else {
+                // Sembunyikan subtotal & pajak baris jika tidak ada pajak (tanpa pajak atau include pajak)
+                if (rowSubtotal) rowSubtotal.style.display = 'none';
+                if (rowPajak) rowPajak.style.display = 'none';
+            }
+
+            document.getElementById('struk-total').innerText = Number(order.total_price).toLocaleString('id-ID');
 
             window.print();
         }
@@ -568,7 +670,6 @@
 
         function cekStatusWarung() {
             if (!currentShopSlug) return;
-            // Fetch 4: Cek status warung dengan x-shop-id header[cite: 5]
             fetch(`${API_URL}/api/shops/status?shop=${currentShopSlug}`, {
                 headers: {
                     'x-shop-id': localStorage.getItem('shop_id')
@@ -600,7 +701,6 @@
             const pesanAksi = statusBaru == 1 ? "membuka" : "menutup";
 
             if (confirm(`Apakah Anda yakin ingin ${pesanAksi} warung?`)) {
-                // Fetch 5: Toggle buka tutup dengan x-shop-id header[cite: 5]
                 fetch(`${API_URL}/api/shops/toggle-status`, {
                     method: 'PUT',
                     headers: { 
@@ -623,57 +723,52 @@
             }
         }
 
-        let wakeLock = null;
-
-        async function requestWakeLock() {
-            try {
-                if ('wakeLock' in navigator) {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                    console.log('Layar dikunci agar tetap menyala!');
-                }
-            } catch (err) {
-                console.log(`Gagal mengunci layar: ${err.message}`);
+        // =========================================================================
+        // MANAJEMEN PENGATURAN WARUNG (GET & PUT)
+        // =========================================================================
+        function toggleTaxInput(isChecked) {
+            const wrapper = document.getElementById('tax-percentage-wrapper');
+            if (isChecked) {
+                wrapper.classList.remove('opacity-40', 'pointer-events-none');
+                document.getElementById('set-tax-percentage').removeAttribute('disabled');
+            } else {
+                wrapper.classList.add('opacity-40', 'pointer-events-none');
+                document.getElementById('set-tax-percentage').setAttribute('disabled', 'disabled');
+                document.getElementById('set-tax-percentage').value = "0";
             }
         }
-
-        document.addEventListener('click', () => {
-            if (!wakeLock) {
-                requestWakeLock();
-            }
-        });
-
-        document.addEventListener('visibilitychange', async () => {
-            if (wakeLock !== null && document.visibilityState === 'visible') {
-                requestWakeLock();
-            }
-        });
 
         function bukaModalSetting() {
             if (!currentShopSlug) return;
             document.getElementById('setting-modal').classList.remove('hidden');
 
-            // Fetch 6: Ambil setting toko dengan x-shop-id header[cite: 5]
             fetch(`${API_URL}/api/shops/settings?shop=${currentShopSlug}`, {
                 headers: {
                     'x-shop-id': localStorage.getItem('shop_id')
                 }
             })
-                .then(res => res.json())
-                .then(res => {
-                    if (res.success && res.data) {
-                        const s = res.data;
-                        document.getElementById('set-show-cash').checked = Number(s.show_cash_payment) === 1;
-                        document.getElementById('set-default-stock').value = s.default_stock_qty || 20;
-                        document.getElementById('set-bank-info').value = s.bank_rekening_info || '';
-                        
-                        if (s.qris_image_url) {
-                            document.getElementById('preview-qris-aktif').src = s.qris_image_url;
-                        } else {
-                            document.getElementById('preview-qris-aktif').src = "https://via.placeholder.com/100?text=Belum+Ada+QRIS";
-                        }
+            .then(res => res.json())
+            .then(res => {
+                if (res.success && res.data) {
+                    const s = res.data;
+                    document.getElementById('set-show-cash').checked = Number(s.show_cash_payment) === 1;
+                    document.getElementById('set-default-stock').value = s.default_stock_qty || 20;
+                    document.getElementById('set-bank-info').value = s.bank_rekening_info || '';
+                    
+                    // Set Status Pajak Terkini
+                    const hasTax = Number(s.has_tax) === 1;
+                    document.getElementById('set-has-tax').checked = hasTax;
+                    document.getElementById('set-tax-percentage').value = s.tax_percentage || 0;
+                    toggleTaxInput(hasTax);
+
+                    if (s.qris_image_url) {
+                        document.getElementById('preview-qris-aktif').src = s.qris_image_url;
+                    } else {
+                        document.getElementById('preview-qris-aktif').src = "https://via.placeholder.com/100?text=Belum+Ada+QRIS";
                     }
-                })
-                .catch(err => console.error("Gagal load setting toko:", err));
+                }
+            })
+            .catch(err => console.error("Gagal load setting toko:", err));
         }
 
         function tutupModalSetting() {
@@ -688,6 +783,8 @@
             btn.innerText = "⏳ Menyimpan...";
 
             const isShowCash = document.getElementById('set-show-cash').checked ? 1 : 0;
+            const hasTax = document.getElementById('set-has-tax').checked ? 1 : 0;
+            const taxPercentage = document.getElementById('set-tax-percentage').value || 0;
             const defaultStock = document.getElementById('set-default-stock').value;
             const bankInfo = document.getElementById('set-bank-info').value;
             const qrisFile = document.getElementById('set-qris-image').files[0];
@@ -695,13 +792,14 @@
             const formData = new FormData();
             formData.append('shop', currentShopSlug);
             formData.append('show_cash_payment', isShowCash);
+            formData.append('has_tax', hasTax);
+            formData.append('tax_percentage', taxPercentage);
             formData.append('default_stock_qty', defaultStock);
             formData.append('bank_rekening_info', bankInfo);
             if (qrisFile) {
                 formData.append('qris_image', qrisFile);
             }
 
-            // Fetch 7: Simpan setting toko (Multipart data) dengan x-shop-id header[cite: 5]
             fetch(`${API_URL}/api/shops/settings`, {
                 method: 'PUT',
                 headers: {
@@ -729,6 +827,25 @@
             });
         }
 
+        let wakeLock = null;
+
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('Layar dikunci agar tetap menyala!');
+                }
+            } catch (err) {
+                console.log(`Gagal mengunci layar: ${err.message}`);
+            }
+        }
+
+        document.addEventListener('click', () => {
+            if (!wakeLock) {
+                requestWakeLock();
+            }
+        });
+
         function logout() {
             localStorage.clear();
             window.location.href = "login.html";
@@ -749,66 +866,15 @@
         </div>
     </div>
 
-    <!-- SCRIPT TAMBAHAN UTK KONTROL MODAL -->
     <script>
         function bukaModalBukti(url) {
             document.getElementById('img-modal-target').src = url;
             document.getElementById('link-download-bukti').href = url;
             document.getElementById('modal-bukti-bayar').classList.remove('hidden');
         }
-
         function tutupModalBukti() {
             document.getElementById('modal-bukti-bayar').classList.add('hidden');
         }
     </script>
-
-    <!-- MODAL PENGATURAN TOKO (BARU) -->
-    <div id="setting-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm no-print">
-        <div class="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto space-y-4" onclick="event.stopPropagation()">
-            <div class="flex justify-between items-center border-b pb-3">
-                <h3 class="text-base font-bold text-gray-900">⚙️ Pengaturan Warung Digital</h3>
-                <button onclick="tutupModalSetting()" class="text-gray-400 hover:text-gray-600 text-2xl font-bold">×</button>
-            </div>
-            
-            <form id="form-setting-toko" onsubmit="simpanSettingToko(event)" class="space-y-4 text-xs">
-                <!-- 1. Opsi Cash -->
-                <div class="bg-gray-50 p-3 rounded-xl border border-gray-200">
-                    <label class="flex items-center gap-2 cursor-pointer select-none">
-                        <input type="checkbox" id="set-show-cash" class="w-4 h-4 text-orange-500 border-gray-300 rounded focus:ring-orange-500">
-                        <span class="font-bold text-gray-700">Aktifkan Metode Pembayaran CASH / Tunai</span>
-                    </label>
-                    <p class="text-[10px] text-gray-400 mt-1 pl-6">Jika dimatikan, pembeli dipaksa memilih transfer bank & wajib upload bukti.</p>
-                </div>
-
-                <!-- 2. Minimal Qty Stok default -->
-                <div>
-                    <label class="block font-bold text-gray-600 uppercase mb-1">Stok Awal Saat Warung Buka</label>
-                    <input type="number" id="set-default-stock" required min="1" class="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-orange-500">
-                    <p class="text-[10px] text-gray-400 mt-0.5">Semua menu otomatis direset ke angka ini saat status warung diganti ke "🟢 Buka".</p>
-                </div>
-
-                <!-- 3. Setting Rekening -->
-                <div>
-                    <label class="block font-bold text-gray-600 uppercase mb-1">Informasi Nomor Rekening (Pisahkan dengan baris baru)</label>
-                    <textarea id="set-bank-info" rows="3" placeholder="Contoh:&#10;BCA - 1234567890 a/n Warung&#10;BRI - 9876543210 a/n Warung" class="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-orange-500 font-mono text-[11px]"></textarea>
-                </div>
-
-                <!-- 4. Upload QRIS -->
-                <div>
-                    <label class="block font-bold text-gray-600 uppercase mb-1">Ganti Foto QRIS (.JPG, .PNG)</label>
-                    <input type="file" id="set-qris-image" accept="image/*" class="w-full text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[11px] file:font-bold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100">
-                    <div class="mt-2 text-center p-1 bg-gray-50 rounded border border-dashed">
-                        <span class="text-[10px] text-gray-400 block mb-1">QRIS Aktif Saat Ini:</span>
-                        <img id="preview-qris-aktif" src="https://via.placeholder.com/100" class="w-24 h-24 mx-auto object-contain bg-white border rounded p-1">
-                    </div>
-                </div>
-
-                <div class="border-t pt-3 flex gap-2">
-                    <button type="button" onclick="tutupModalSetting()" class="w-1/3 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold py-2 rounded-xl transition">Batal</button>
-                    <button type="submit" id="btn-submit-setting" class="w-2/3 bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 rounded-xl shadow-md transition">Simpan Pengaturan</button>
-                </div>
-            </form>
-        </div>
-    </div>
 </body>
 </html>

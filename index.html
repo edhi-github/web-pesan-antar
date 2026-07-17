@@ -1,3 +1,4 @@
+<!-- Gantilah file index.html Anda secara penuh dengan kode ini -->
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -147,7 +148,7 @@
                         </label>
                     </div>
 
-                    <!-- UPLOAD BUKTI BAYAR (Bisa disembunyikan lewat JS) -->
+                    <!-- UPLOAD BUKTI BAYAR -->
                     <div id="wrapper-upload-bukti" class="mb-4">
                         <label class="block text-[9px] font-bold uppercase text-gray-500 mb-1">Upload Bukti Bayar (.JPG, .PNG, .PDF)</label>
                         <input type="file" id="cust-payment-proof" required accept="image/*,application/pdf"
@@ -155,10 +156,22 @@
                     </div>
                 </div>
 
-                <div class="border-t pt-2 mt-2 flex justify-between items-center text-sm font-bold">
-                    <span class="text-xs text-gray-600">Total :</span>
-                    <span id="modal-total" class="text-orange-600 text-base">Rp 0</span>
+                <!-- RINCIAN KALKULASI PAJAK (TRANSPARAN) -->
+                <div class="bg-gray-50 border border-gray-100 rounded-xl p-3 text-xs space-y-1 text-gray-600">
+                    <div class="flex justify-between">
+                        <span>Total Makanan :</span>
+                        <span id="modal-subtotal">Rp 0</span>
+                    </div>
+                    <div class="flex justify-between border-b pb-1.5" id="tax-row">
+                        <span id="tax-label">Pajak (0%) :</span>
+                        <span id="modal-tax-amount">Rp 0</span>
+                    </div>
+                    <div class="flex justify-between items-center text-sm font-bold text-gray-900 pt-1">
+                        <span>Grand Total :</span>
+                        <span id="modal-total" class="text-orange-600 text-base">Rp 0</span>
+                    </div>
                 </div>
+
                 <button type="submit" id="btn-submit-order" class="w-full bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-2.5 rounded-xl shadow-md transition disabled:bg-gray-400">
                     🚀 Kirim Pesanan ke Penjual
                 </button>
@@ -166,7 +179,7 @@
         </div>
     </div>
 
-    <!-- MODAL POPUP PENCARIAN/PELACAKAN PESANAN (BARU) -->
+    <!-- MODAL POPUP PENCARIAN/PELACAKAN PESANAN -->
     <div id="search-modal" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl max-h-[85vh] flex flex-col space-y-4">
             <div class="flex justify-between items-center border-b pb-3">
@@ -197,8 +210,13 @@
         const currentShopSlug = urlParams.get('shop');
 
         let keranjang = [];
-        let totalHarga = 0;
+        let totalHarga = 0; // Menampung Sub-total murni menu
+        let grandTotal = 0; // Total akhir setelah pajak
         let isShopOpen = true; 
+
+        // Aturan Pajak Global
+        let hasTax = false;
+        let taxPercentage = 0;
 
         document.addEventListener("DOMContentLoaded", () => {
             if (!currentShopSlug) {
@@ -214,7 +232,7 @@
         });
 
         // ==========================================
-        // FUNGSI MODAL PENCARIAN PESANAN (BARU)
+        // FUNGSI MODAL PENCARIAN PESANAN
         // ==========================================
         function bukaModalCariPesanan() {
             document.getElementById('search-modal').classList.remove('hidden');
@@ -249,13 +267,12 @@
                         return;
                     }
 
-                    resultContainer.innerHTML = ''; // Clear loader
+                    resultContainer.innerHTML = ''; 
 
                     response.data.forEach(order => {
                         const dateObj = new Date(order.created_at);
                         const timeStr = `${dateObj.getDate()}/${dateObj.getMonth()+1} ${dateObj.getHours().toString().padStart(2,'0')}:${dateObj.getMinutes().toString().padStart(2,'0')}`;
                         
-                        // Set style badge status hiasan berdasarkan level
                         let statusColor = "bg-blue-100 text-blue-800";
                         let statusLabel = "Antrean Baru";
                         if (order.status === 'proses') {
@@ -300,7 +317,7 @@
         }
 
         // ==========================================
-        // SISA FUNGSI BAWAAN SISTEM LOGIKA JANGAN BERUBAH
+        // LOGIKA PENERAPAN STATUS TOKO
         // ==========================================
         function updateStatusTokoUI(isOpen) {
             const isTrueOpen = Number(isOpen) === 1 || isOpen === true;
@@ -401,7 +418,39 @@
                 `;
                 listContainer.appendChild(row);
             });
-            document.getElementById('modal-total').innerText = `Rp ${totalHarga.toLocaleString('id-ID')}`;
+
+            // LOGIKA HITUNG DAN TAMPILKAN PAJAK PADA MODAL
+            let calculatedTax = 0;
+            grandTotal = totalHarga;
+
+            const taxRow = document.getElementById('tax-row');
+            const taxLabel = document.getElementById('tax-label');
+            const modalTaxAmount = document.getElementById('modal-tax-amount');
+            const modalSubtotal = document.getElementById('modal-subtotal');
+
+            if (modalSubtotal) modalSubtotal.innerText = `Rp ${totalHarga.toLocaleString('id-ID')}`;
+
+            if (hasTax) {
+                taxRow.classList.remove('hidden');
+                if (taxPercentage > 0) {
+                    calculatedTax = (totalHarga * taxPercentage) / 100;
+                    grandTotal = totalHarga + calculatedTax;
+                    taxLabel.innerText = `Pajak (${taxPercentage}%) :`;
+                    modalTaxAmount.innerText = `Rp ${calculatedTax.toLocaleString('id-ID')}`;
+                } else {
+                    // Jika dicentang tapi nilai 0 -> Harga sudah termasuk pajak
+                    taxLabel.innerText = `Pajak :`;
+                    modalTaxAmount.innerText = `Harga termasuk pajak`;
+                    grandTotal = totalHarga;
+                }
+            } else {
+                taxRow.classList.add('hidden');
+                grandTotal = totalHarga;
+            }
+
+            document.querySelectorAll('#modal-total').forEach(el => {
+                el.innerText = `Rp ${grandTotal.toLocaleString('id-ID')}`;
+            });
         }
 
         function updateCatatan(idUnik, teksCatatan) {
@@ -429,13 +478,11 @@
                 .then(response => {
                     if (response.hasOwnProperty('is_open')) {
                         updateStatusTokoUI(response.is_open);
-                        // <--- SISIPKAN FUNGSI BARU DI SINI --->
                         terapkanSettinganTokoPihakPembeli();
                     } else if (response.data && response.data.length > 0 && response.data[0].hasOwnProperty('shop_status')) {
                         updateStatusTokoUI(Number(response.data[0].shop_status) === 1);
                     }
 
-                    
                     if (!response.success || !response.data || response.data.length === 0) {
                         containerMenu.innerHTML = '<div class="text-center py-10 text-gray-400 text-sm">Belum ada menu yang tersedia saat ini.</div>';
                         return;
@@ -588,7 +635,7 @@
                 formData.append('customer_name', nama);
                 formData.append('customer_phone', phone);
                 formData.append('table_or_address', table);
-                formData.append('total_price', totalHarga);
+                formData.append('total_price', grandTotal); // Kirim total yang sudah dikalkulasi dengan pajak ke DB
                 formData.append('items', JSON.stringify(itemsValid));
                 formData.append('payment_method', isCash ? 'cash' : 'transfer');
                 
@@ -645,12 +692,16 @@
                     if (!res.success || !res.data) return;
                     const s = res.data;
 
+                    // SYNC DATA PAJAK DARI DB
+                    hasTax = Number(s.has_tax) === 1;
+                    taxPercentage = parseFloat(s.tax_percentage || 0);
+
                     // 1. Kontrol Tombol Pembayaran Tunai/Cash
                     const wrapperCheckboxCash = document.getElementById('pay-cash').closest('.mb-4');
                     if (Number(s.show_cash_payment) === 0) {
                         if (wrapperCheckboxCash) wrapperCheckboxCash.classList.add('hidden');
                         document.getElementById('pay-cash').checked = false;
-                        togglePaymentMethod(document.getElementById('pay-cash')); // Pastikan upload bukti dipaksa 'required'
+                        togglePaymentMethod(document.getElementById('pay-cash')); 
                     } else {
                         if (wrapperCheckboxCash) wrapperCheckboxCash.classList.remove('hidden');
                     }
@@ -660,7 +711,6 @@
                     const targetRekeningDiv = infoPembayaranContainer.querySelector('.text-xs.text-gray-600.space-y-1');
                     
                     if (s.bank_rekening_info && s.bank_rekening_info.trim() !== '') {
-                        // Bersihkan baris bawaan bawaan html default terdahulu
                         targetRekeningDiv.innerHTML = '<p class="font-bold text-gray-700">Silakan transfer ke salah satu rekening berikut:</p>';
                         
                         const lines = s.bank_rekening_info.split('\n');
@@ -679,17 +729,8 @@
                         });
                     }
 
-                    // =========================================================================
-                    // UPDATE PADA BAGIAN 3 DI FUNGSI terapkanSettinganTokoPihakPembeli()
-                    // =========================================================================
-
-                    // 3. Render Gambar QRIS Dinamis (Dengan Bypass wsrv.nl untuk R2)
-                    // =========================================================================
-                    // FIX: FORCE OVERWRITE GAMBAR DENGAN DELAY AGAR TIDAK DITIMPA SCRIPT LAIN
-                    // =========================================================================
-
-                    // Ambil URL yang sudah diproses proxy
-                    let ruteLengkapQris = s.qris_image_url.trim();
+                    // 3. Render Gambar QRIS Dinamis
+                    let ruteLengkapQris = s.qris_image_url ? s.qris_image_url.trim() : '';
                     if (ruteLengkapQris.startsWith('http://') || ruteLengkapQris.startsWith('https://')) {
                         if (ruteLengkapQris.includes('r2.dev')) {
                             ruteLengkapQris = `https://wsrv.nl/?url=${encodeURIComponent(ruteLengkapQris)}`;
@@ -698,12 +739,8 @@
                         ruteLengkapQris = `${API_URL}${ruteLengkapQris}`;
                     }
 
-                    // Beri delay 300ms untuk memastikan script generator QR lama sudah selesai berjalan
                     setTimeout(() => {
-                        // Cari tag <img> berdasarkan ID
                         let qrisImg = document.getElementById('qris-payment-img');
-                        
-                        // Jika ID tidak ditemukan, cari alternatif img di dalam container #info-pembayaran
                         if (!qrisImg) {
                             const container = document.getElementById('info-pembayaran');
                             if (container) {
@@ -711,13 +748,9 @@
                             }
                         }
 
-                        // Jika elemen gambar ditemukan, paksa ganti src-nya
-                        if (qrisImg) {
-                            console.log("Mengubah QRIS ke gambar baru:", ruteLengkapQris); // Untuk cek di inspect element
-                            qrisImg.removeAttribute('srcset'); // Hapus jika ada srcset bawaan
+                        if (qrisImg && ruteLengkapQris) {
+                            qrisImg.removeAttribute('srcset'); 
                             qrisImg.src = ruteLengkapQris;
-                        } else {
-                            console.error("Elemen gambar QRIS tidak ditemukan di DOM.");
                         }
                     }, 300);
                 })
