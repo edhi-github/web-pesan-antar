@@ -1028,6 +1028,110 @@
             btn.disabled = true;
             btn.innerText = "⏳ Loading...";
 
+            // Ambil elemen tabel di layar agar ikut terisi
+            const tabelBody = document.getElementById('laporan-table-body'); 
+            if(tabelBody) tabelBody.innerHTML = `<tr><td colspan="5" class="text-center py-4">⏳ Memuat data ke layar...</td></tr>`;
+
+            fetch(`${API_URL}/api/orders/report?shop=${currentShopSlug}&startDate=${tglMulai}&endDate=${tglSelesai}`, {
+                headers: {
+                    'x-shop-id': localStorage.getItem('shop_id')
+                }
+            })
+            .then(res => res.json())
+            .then(res => {
+                if (!res.success) {
+                    throw new Error(res.message || "Gagal mengambil data laporan.");
+                }
+
+                const reportData = res.data;
+                if (reportData.length === 0) {
+                    alert("Tidak ada transaksi selesai pada rentang tanggal tersebut.");
+                    if(tabelBody) tabelBody.innerHTML = `<tr><td colspan="5" class="text-center py-4">Tidak ada data.</td></tr>`;
+                    btn.disabled = false;
+                    btn.innerText = "🔗 Share";
+                    return;
+                }
+
+                // ==========================================
+                // BARU: RENDER KE TABEL LAYAR TERLEBIH DAHULU
+                // ==========================================
+                if (tabelBody) {
+                    let htmlContent = '';
+                    reportData.forEach((order, index) => {
+                        htmlContent += `
+                            <tr class="border-b text-[11px]">
+                                <td class="py-2 text-center">${index + 1}</td>
+                                <td class="py-2">#ORD-${order.id}</td>
+                                <td class="py-2">${order.customer_name}</td>
+                                <td class="py-2">${order.items.map(i => `${i.kuantitas}x ${i.nama}`).join(', ')}</td>
+                                <td class="py-2 text-right">Rp ${Number(order.total_price).toLocaleString('id-ID')}</td>
+                            </tr>
+                        `;
+                    });
+                    tabelBody.innerHTML = htmlContent;
+                }
+                // ==========================================
+
+                // Susun Rangkuman Laporan Ke Dalam Format Teks (Untuk WhatsApp/Share)
+                let totalOmset = 0;
+                let totalPajak = 0;
+                let teksLaporan = `*LAPORAN PENJUALAN - DAPUR ${currentShopSlug.replace(/-/g, ' ').toUpperCase()}*\n`;
+                teksLaporan += `Periode: ${tglMulai} s.d ${tglSelesai}\n`;
+                teksLaporan += `------------------------------------------\n\n`;
+
+                reportData.forEach((order, index) => {
+                    const listMenu = order.items.map(i => `- ${i.kuantitas}x ${i.nama}`).join('\n');
+                    totalOmset += Number(order.total_price || 0);
+                    totalPajak += Number(order.tax_amount || 0);
+
+                    teksLaporan += `*#ORD-${order.id}* (${order.customer_name} - ${order.table_or_address})\n`;
+                    teksLaporan += `${listMenu}\n`;
+                    teksLaporan += `Total: Rp ${Number(order.total_price).toLocaleString('id-ID')}\n`;
+                    teksLaporan += `------------------------------------------\n`;
+                });
+
+                teksLaporan += `\n*RINGKASAN AKHIR:*\n`;
+                teksLaporan += `Total Transaksi: ${reportData.length} Pesanan\n`;
+                teksLaporan += `Total Pajak: Rp ${totalPajak.toLocaleString('id-ID')}\n`;
+                teksLaporan += `*Total Pendapatan (Omset): Rp ${totalOmset.toLocaleString('id-ID')}*\n`;
+
+                // Eksekusi Share
+                if (navigator.share) {
+                    navigator.share({
+                        title: `Laporan Penjualan Dapur ${currentShopSlug}`,
+                        text: teksLaporan
+                    }).catch(err => console.log('Share cancel/error:', err));
+                } else {
+                    navigator.clipboard.writeText(teksLaporan)
+                    .then(() => {
+                        alert("📋 Rangkuman laporan telah disalin ke Clipboard! Silakan paste langsung ke WhatsApp.");
+                    });
+                }
+
+                btn.disabled = false;
+                btn.innerText = "🔗 Share";
+            })
+            .catch(err => {
+                console.error(err);
+                alert("Terjadi kesalahan: " + err.message);
+                if(tabelBody) tabelBody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-red-500">Gagal memuat data.</td></tr>`;
+                btn.disabled = false;
+                btn.innerText = "🔗 Share";
+            });
+        }
+        /*function prosesBagikanLaporan() {
+            const tglMulai = document.getElementById('lap-tanggal-mulai').value;
+            const tglSelesai = document.getElementById('lap-tanggal-selesai').value;
+
+            if (!tglMulai || !tglSelesai) {
+                alert("Mohon pilih rentang tanggal laporan terlebih dahulu.");
+                return;
+            }
+
+            const btn = document.getElementById('btn-share-report');
+            btn.disabled = true;
+            btn.innerText = "⏳ Loading...";
+
             // Ambil data dari API backend yang sudah ada
             fetch(`${API_URL}/api/orders/report?shop=${currentShopSlug}&startDate=${tglMulai}&endDate=${tglSelesai}`, {
                 headers: {
@@ -1105,7 +1209,7 @@
                 btn.disabled = false;
                 btn.innerText = "🔗 Share";
             });
-        }
+        }*/
     </script>
 
     <!-- 3. MODAL POPUP UNTUK MEMPERBESAR BUKTI BAYAR -->
