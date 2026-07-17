@@ -684,13 +684,18 @@
                     // =========================================================================
 
                     // 3. Render Gambar QRIS Dinamis (Dengan Bypass wsrv.nl untuk R2)
+                    // =========================================================================
+                    // PERBAIKAN: FORCE BYPASS WSRV.NL UNTUK SUBDOMAIN CLOUDFLARE R2
+                    // =========================================================================
+
                     const qrisImg = document.getElementById('qris-payment-img');
                     if (qrisImg) {
                         if (s.qris_image_url) {
-                            let ruteLengkapQris = s.qris_image_url;
+                            let ruteLengkapQris = s.qris_image_url.trim();
 
-                            // Cek jika menggunakan skema http/https dan berasal dari r2.dev
+                            // Deteksi apakah URL ini merupakan link eksternal R2
                             if (ruteLengkapQris.startsWith('http://') || ruteLengkapQris.startsWith('https://')) {
+                                // Jika mengandung domain r2.dev, langsung paksa lewat image proxy wsrv.nl
                                 if (ruteLengkapQris.includes('r2.dev')) {
                                     ruteLengkapQris = `https://wsrv.nl/?url=${encodeURIComponent(ruteLengkapQris)}`;
                                 }
@@ -699,6 +704,7 @@
                                 ruteLengkapQris = `${API_URL}${ruteLengkapQris}`;
                             }
 
+                            // Terapkan ke atribut src tag <img>
                             qrisImg.src = ruteLengkapQris;
                         } else {
                             // Fallback jika belum upload QRIS baru di setting
