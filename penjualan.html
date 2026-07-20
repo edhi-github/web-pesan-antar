@@ -224,7 +224,7 @@
     </div>
 
     <!-- ========================================================================= -->
-    <!-- MODAL POPUP LAPORAN TRANSAKSI (BARU) -->
+    <!-- MODAL POPUP LAPORAN TRANSAKSI -->
     <!-- ========================================================================= -->
     <div id="laporan-modal" class="fixed inset-0 bg-black/50 z-30 hidden flex items-center justify-center p-4 backdrop-blur-sm no-print">
         <div class="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-4">
@@ -276,8 +276,10 @@
         let tabAktifSekarang = 'baru'; 
         let rawOrdersData = [];
 
+        // MODIFIKASI FITUR: PENAMBAHAN PANGGILAN SUARA ROBOT GOOGLE
         function putarBunyiBeep() {
             try {
+                // 1. Jalankan bunyi beep ganda bawaan Anda terlebih dahulu
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 
                 function buatPulsaSuara(waktuMulai) {
@@ -308,10 +310,31 @@
                 buatPulsaSuara(audioCtx.currentTime);
                 buatPulsaSuara(audioCtx.currentTime + 0.2);
 
+                // 2. Jalankan asisten text-to-speech mengucapkan kalimat "Ada Pesanan Baru"
+                panggilSuaraGoogle();
+
             } catch (err) {
                 console.log("Gagal memutar alarm ganda:", err);
             }
         }
+
+        // FUNGSI UTAMA TEXT TO SPEECH (WEB SPEECH API)
+        function panggilSuaraGoogle() {
+            if ('speechSynthesis' in window) {
+                // Hentikan suara sebelumnya jika masih mengoceh
+                window.speechSynthesis.cancel();
+
+                const textSuara = new SpeechSynthesisUtterance("Ada pesanan baru");
+                textSuara.lang = 'id-ID'; // Mengeset ke Bahasa Indonesia
+                textSuara.rate = 1.0;     // Kecepatan normal suara
+                textSuara.pitch = 1.0;    // Nada suara normal
+
+                window.speechSynthesis.speak(textSuara);
+            } else {
+                console.log("Browser tidak mendukung fitur Text-to-Speech.");
+            }
+        }
+
         let jumlahPesananBaruSebelumnya = 0;
         let isFirstLoad = true; 
 
@@ -385,7 +408,7 @@
 
             dataOrders.forEach(order => {
                 let htmlItems = '';
-                let totalProdukMurni = 0; // Sub-total sebelum pajak
+                let totalProdukMurni = 0; 
                 
                 order.items.forEach(item => {
                     const itemSub = Number(item.harga || 0) * Number(item.kuantitas || 1);
@@ -501,7 +524,6 @@
                     labelStatus = `<span class="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-md uppercase">Rejected</span>`;
                 }
 
-                // Kalkulasi Pajak Kartu Dapur
                 const orderTaxAmount = parseFloat(order.tax_amount || 0);
                 let htmlTaxBreakdown = '';
                 if (orderTaxAmount > 0) {
@@ -516,7 +538,6 @@
                         </div>
                     `;
                 } else if (orderTaxAmount === 0 && Number(order.total_price) === totalProdukMurni) {
-                    // Cek apakah ada record has_tax di server (kondisi harga termasuk pajak bisa ditulis begini)
                     htmlTaxBreakdown = `
                         <div class="flex justify-between text-[10px] text-green-600">
                             <span>Keterangan:</span>
@@ -635,15 +656,11 @@
                             siapkanDanCetakStruk(idOrder);
                         }
                         
-                        // =========================================================
-                        // PERBAIKAN: Tetap diam di tab aktif & refresh data saja
-                        // =========================================================
                         if (tabAktifSekarang === 'baru' || tabAktifSekarang === 'proses') {
                             ambilDataDapur();
                         } else {
                             ambilSelesaiAtauReject(tabAktifSekarang);
                         }
-                        // =========================================================
                         
                     } else {
                         alert(data.message || 'Gagal mengubah status pesanan.');
@@ -653,9 +670,6 @@
             }
         }
 
-        // ==========================================
-        // PROSES CETAK STRUK THERMAL YANG DISINKRONKAN DENGAN PAJAK
-        // ==========================================
         function siapkanDanCetakStruk(orderId) {
             const order = rawOrdersData.find(o => {
                 const idTarget = o.id || o.order_id;
@@ -679,7 +693,6 @@
             document.getElementById('struk-pelanggan').innerText = order.customer_name;
             document.getElementById('struk-lokasi').innerText = order.table_or_address;
 
-            // Render Rincian item menu di struk
             const itemsContainer = document.getElementById('struk-items');
             itemsContainer.innerHTML = '';
             
@@ -703,14 +716,12 @@
             const rowSubtotal = document.getElementById('struk-row-subtotal');
             const rowPajak = document.getElementById('struk-row-pajak');
 
-            // Render Kalkulasi Pajak Struk
             if (dbTaxAmount > 0) {
                 if (rowSubtotal) rowSubtotal.style.display = 'block';
                 if (rowPajak) rowPajak.style.display = 'block';
                 document.getElementById('struk-subtotal').innerText = totalSubtotalMenu.toLocaleString('id-ID');
                 document.getElementById('struk-pajak').innerText = dbTaxAmount.toLocaleString('id-ID');
             } else {
-                // Sembunyikan subtotal & pajak baris jika tidak ada pajak (tanpa pajak atau include pajak)
                 if (rowSubtotal) rowSubtotal.style.display = 'none';
                 if (rowPajak) rowPajak.style.display = 'none';
             }
@@ -778,9 +789,6 @@
             }
         }
 
-        // =========================================================================
-        // MANAJEMEN PENGATURAN WARUNG (GET & PUT)
-        // =========================================================================
         function toggleTaxInput(isChecked) {
             const wrapper = document.getElementById('tax-percentage-wrapper');
             if (isChecked) {
@@ -810,30 +818,23 @@
                     document.getElementById('set-default-stock').value = s.default_stock_qty || 20;
                     document.getElementById('set-bank-info').value = s.bank_rekening_info || '';
                     
-                    // Set Status Pajak Terkini
                     const hasTax = Number(s.has_tax) === 1;
                     document.getElementById('set-has-tax').checked = hasTax;
                     document.getElementById('set-tax-percentage').value = s.tax_percentage || 0;
                     toggleTaxInput(hasTax);
 
-                    // --- Logika Baru untuk Pengambilan Gambar QRIS ---
-                    const dbFoto = s.qris_image_url || s.qris_foto; // Menyesuaikan field dari object shop settings
-                    
+                    const dbFoto = s.qris_image_url || s.qris_foto; 
                     let ruteLengkapFoto = 'https://via.placeholder.com/100?text=Belum+Ada+QRIS'; 
 
                     if (dbFoto) {
                         if (dbFoto.startsWith('http://') || dbFoto.startsWith('https://')) {
-                            // Jika menggunakan R2, lewatkan wsrv.nl agar tidak terblokir / CORS
                             ruteLengkapFoto = dbFoto.includes('r2.dev') ? `https://wsrv.nl/?url=${encodeURIComponent(dbFoto)}` : dbFoto;
                         } else {
-                            // Jika path lokal backend (misal: /uploads/qris.png)
                             ruteLengkapFoto = `${API_URL}${dbFoto}`;
                         }
                     }
 
-                    // Terapkan ke element preview
                     document.getElementById('preview-qris-aktif').src = ruteLengkapFoto;
-                    // --------------------------------------------------
                 }
             })
             .catch(err => console.error("Gagal load setting toko:", err));
@@ -919,11 +920,7 @@
             window.location.href = "login.html";
         }
 
-        // =========================================================================
-        // JAVASCRIPT CONTROLLER LAPORAN & EKSPOR EXCEL (BARU)
-        // =========================================================================
         function bukaModalLaporan() {
-            // Set default tanggal hari ini (Format YYYY-MM-DD)
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('lap-tanggal-mulai').value = today;
             document.getElementById('lap-tanggal-selesai').value = today;
@@ -948,7 +945,6 @@
             btn.disabled = true;
             btn.innerText = "⏳ Memproses...";
 
-            // Memanggil API backend baru untuk mendapatkan data laporan
             fetch(`${API_URL}/api/orders/report?shop=${currentShopSlug}&startDate=${tglMulai}&endDate=${tglSelesai}`, {
                 headers: {
                     'x-shop-id': localStorage.getItem('shop_id')
@@ -968,14 +964,10 @@
                     return;
                 }
 
-                // Transformasi data mentah ke format tabel Excel yang rapi
                 const rowsForExcel = [];
                 
                 reportData.forEach(order => {
                     const tglOrder = new Date(order.created_at).toLocaleString('id-ID');
-                    
-                    // Detail item digabung menjadi 1 baris string jika ingin ringkas, 
-                    // atau bisa dicacah per baris. Format ringkas 1 order 1 baris:
                     const daftarItem = order.items.map(i => `${i.kuantitas}x ${i.nama} (Rp ${Number(i.subtotal).toLocaleString('id-ID')})`).join(', ');
 
                     rowsForExcel.push({
@@ -991,16 +983,13 @@
                     });
                 });
 
-                // Buat Workbook Excel via SheetJS
                 const worksheet = XLSX.utils.json_to_sheet(rowsForExcel);
                 const workbook = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(workbook, worksheet, "Laporan Transaksi");
 
-                // Auto-fit kolom agar rapi
                 const max_author = rowsForExcel.reduce((w, r) => Math.max(w, r["Daftar Menu"].length), 10);
                 worksheet["!cols"] = [ { wch: 12 }, { wch: 20 }, { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: Math.min(max_author, 50) }, { wch: 12 }, { wch: 15 } ];
 
-                // Download File
                 const namaFile = `Laporan_Transaksi_${currentShopSlug}_${tglMulai}_ke_${tglSelesai}.xlsx`;
                 XLSX.writeFile(workbook, namaFile);
 
@@ -1016,9 +1005,6 @@
             });
         }
 
-        // =========================================================================
-        // FITUR BARU: SHARE LAPORAN VIA WEB SHARE API / COPY CLIPBOARD
-        // =========================================================================
         function prosesBagikanLaporan() {
             const tglMulai = document.getElementById('lap-tanggal-mulai').value;
             const tglSelesai = document.getElementById('lap-tanggal-selesai').value;
@@ -1029,10 +1015,8 @@
             }
 
             const btn = document.getElementById('btn-share-report');
-            //btn.disabled = true;
             btn.innerText = "⏳ Loading...";
 
-            // Ambil elemen tabel di layar agar ikut terisi
             const tabelBody = document.getElementById('laporan-table-body'); 
             if(tabelBody) tabelBody.innerHTML = `<tr><td colspan="5" class="text-center py-4">⏳ Memuat data ke layar...</td></tr>`;
 
@@ -1056,9 +1040,6 @@
                     return;
                 }
 
-                // ==========================================
-                // BARU: RENDER KE TABEL LAYAR TERLEBIH DAHULU
-                // ==========================================
                 if (tabelBody) {
                     let htmlContent = '';
                     reportData.forEach((order, index) => {
@@ -1074,9 +1055,7 @@
                     });
                     tabelBody.innerHTML = htmlContent;
                 }
-                // ==========================================
 
-                // Susun Rangkuman Laporan Ke Dalam Format Teks (Untuk WhatsApp/Share)
                 let totalOmset = 0;
                 let totalPajak = 0;
                 let teksLaporan = `*LAPORAN PENJUALAN - DAPUR ${currentShopSlug.replace(/-/g, ' ').toUpperCase()}*\n`;
@@ -1099,7 +1078,6 @@
                 teksLaporan += `Total Pajak: Rp ${totalPajak.toLocaleString('id-ID')}\n`;
                 teksLaporan += `*Total Pendapatan (Omset): Rp ${totalOmset.toLocaleString('id-ID')}*\n`;
 
-                // Eksekusi Share
                 if (navigator.share) {
                     navigator.share({
                         title: `Laporan Penjualan Dapur ${currentShopSlug}`,
@@ -1123,99 +1101,6 @@
                 btn.innerText = "🔗 Share";
             });
         }
-        /*function prosesBagikanLaporan() {
-            const tglMulai = document.getElementById('lap-tanggal-mulai').value;
-            const tglSelesai = document.getElementById('lap-tanggal-selesai').value;
-
-            if (!tglMulai || !tglSelesai) {
-                alert("Mohon pilih rentang tanggal laporan terlebih dahulu.");
-                return;
-            }
-
-            const btn = document.getElementById('btn-share-report');
-            btn.disabled = true;
-            btn.innerText = "⏳ Loading...";
-
-            // Ambil data dari API backend yang sudah ada
-            fetch(`${API_URL}/api/orders/report?shop=${currentShopSlug}&startDate=${tglMulai}&endDate=${tglSelesai}`, {
-                headers: {
-                    'x-shop-id': localStorage.getItem('shop_id')
-                }
-            })
-            .then(res => res.json())
-            .then(res => {
-                if (!res.success) {
-                    throw new Error(res.message || "Gagal mengambil data laporan.");
-                }
-
-                const reportData = res.data;
-                if (reportData.length === 0) {
-                    alert("Tidak ada transaksi selesai pada rentang tanggal tersebut untuk dibagikan.");
-                    btn.disabled = false;
-                    btn.innerText = "🔗 Share";
-                    return;
-                }
-
-                // 1. Susun Rangkuman Laporan Ke Dalam Format Teks (String)
-                let totalOmset = 0;
-                let totalPajak = 0;
-                let teksLaporan = `*LAPORAN PENJUALAN - DAPUR ${currentShopSlug.replace(/-/g, ' ').toUpperCase()}*\n`;
-                teksLaporan += `Periode: ${tglMulai} s.d ${tglSelesai}\n`;
-                teksLaporan += `------------------------------------------\n\n`;
-
-                reportData.forEach((order, index) => {
-                    const listMenu = order.items.map(i => `- ${i.kuantitas}x ${i.nama}`).join('\n');
-                    totalOmset += Number(order.total_price || 0);
-                    totalPajak += Number(order.tax_amount || 0);
-
-                    teksLaporan += `*#ORD-${order.id}* (${order.customer_name} - ${order.table_or_address})\n`;
-                    teksLaporan += `${listMenu}\n`;
-                    teksLaporan += `Total: Rp ${Number(order.total_price).toLocaleString('id-ID')}\n`;
-                    teksLaporan += `------------------------------------------\n`;
-                });
-
-                teksLaporan += `\n*RINGKASAN AKHIR:*\n`;
-                teksLaporan += `Total Transaksi: ${reportData.length} Pesanan\n`;
-                teksLaporan += `Total Pajak: Rp ${totalPajak.toLocaleString('id-ID')}\n`;
-                teksLaporan += `*Total Pendapatan (Omset): Rp ${totalOmset.toLocaleString('id-ID')}*\n`;
-
-                // 2. Eksekusi Share Menggunakan Web Share API atau Fallback Copy Clipboard
-                if (navigator.share) {
-                    navigator.share({
-                        title: `Laporan Penjualan Dapur ${currentShopSlug}`,
-                        text: teksLaporan
-                    })
-                    .then(() => {
-                        console.log('Laporan berhasil dibagikan!');
-                    })
-                    .catch((err) => {
-                        // Squelch / abaikan jika user membatalkan share manual
-                        console.log('Share dibatalkan atau gagal:', err);
-                    });
-                } else {
-                    // Alternatif (Fallback): Jika browser tidak support Web Share API (misal di PC Desktop Chrome/Firefox)
-                    navigator.clipboard.writeText(teksLaporan)
-                    .then(() => {
-                        alert("📋 Browser Anda tidak mendukung share langsung. Rangkuman laporan telah disalin ke Clipboard! Silakan paste (Ctrl+V) langsung ke WhatsApp atau aplikasi tujuan.");
-                    })
-                    .catch(err => {
-                        alert("Gagal menyalin laporan.");
-                        console.error(err);
-                    });
-                }
-
-                btn.disabled = false;
-                btn.innerText = "🔗 Share";
-            })
-            .catch(err => {
-                console.error(err);
-                alert("Terjadi kesalahan: " + err.message);
-                btn.disabled = false;
-                btn.innerText = "🔗 Share";
-            });
-        }*/
-
-        
     </script>
 
     <!-- 3. MODAL POPUP UNTUK MEMPERBESAR BUKTI BAYAR -->
