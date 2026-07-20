@@ -318,21 +318,50 @@
             }
         }
 
-        // FUNGSI UTAMA TEXT TO SPEECH (WEB SPEECH API)
+        // FUNGSI UTAMA TEXT TO SPEECH (WEB SPEECH API) - FIXED
         function panggilSuaraGoogle() {
             if ('speechSynthesis' in window) {
-                // Hentikan suara sebelumnya jika masih mengoceh
-                window.speechSynthesis.cancel();
+                
+                // 1. Amankan bug cancel dengan mengecek statusnya terlebih dahulu
+                if (window.speechSynthesis.speaking) {
+                    window.speechSynthesis.cancel();
+                    
+                    // Beri jeda 50ms setelah cancel agar browser siap menerima antrean baru
+                    setTimeout(eksekusiBicara, 50);
+                } else {
+                    eksekusiBicara();
+                }
 
-                const textSuara = new SpeechSynthesisUtterance("Ada pesanan baru");
-                textSuara.lang = 'id-ID'; // Mengeset ke Bahasa Indonesia
-                textSuara.rate = 1.0;     // Kecepatan normal suara
-                textSuara.pitch = 1.0;    // Nada suara normal
+                function eksekusiBicara() {
+                    const textSuara = new SpeechSynthesisUtterance("Ada pesanan baru");
+                    
+                    // 2. Cari kecocokan objek Voice Bahasa Indonesia di browser
+                    const listSuara = window.speechSynthesis.getVoices();
+                    const suaraIndo = listSuara.find(v => v.lang.includes('id-ID') || v.lang.includes('id_ID'));
+                    
+                    if (suaraIndo) {
+                        textSuara.voice = suaraIndo; // Paksa gunakan voice engine Indonesia
+                    }
+                    
+                    textSuara.lang = 'id-ID'; 
+                    textSuara.rate = 1.0;     
+                    textSuara.pitch = 1.0;    
 
-                window.speechSynthesis.speak(textSuara);
+                    window.speechSynthesis.speak(textSuara);
+                }
+
             } else {
                 console.log("Browser tidak mendukung fitur Text-to-Speech.");
             }
+        }
+
+        // 3. Pemicu Wajib: Supaya browser langsung memuat daftar suara saat halaman pertama kali dibuka
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.getVoices();
+            // Untuk Chrome di Android/PC kadang butuh event listener ini
+            window.speechSynthesis.onvoiceschanged = function() {
+                window.speechSynthesis.getVoices();
+            };
         }
 
         let jumlahPesananBaruSebelumnya = 0;
