@@ -633,14 +633,18 @@
                     if (data.success) {
                         if (statusBaru === 'selesai') {
                             siapkanDanCetakStruk(idOrder);
-                            gantiTab('selesai'); 
-                        } else if (statusBaru === 'proses') {
-                            gantiTab('proses'); 
-                        } else if (statusBaru === 'reject') {
-                            gantiTab('reject'); 
-                        } else {
-                            ambilDataDapur();
                         }
+                        
+                        // =========================================================
+                        // PERBAIKAN: Tetap diam di tab aktif & refresh data saja
+                        // =========================================================
+                        if (tabAktifSekarang === 'baru' || tabAktifSekarang === 'proses') {
+                            ambilDataDapur();
+                        } else {
+                            ambilSelesaiAtauReject(tabAktifSekarang);
+                        }
+                        // =========================================================
+                        
                     } else {
                         alert(data.message || 'Gagal mengubah status pesanan.');
                     }
