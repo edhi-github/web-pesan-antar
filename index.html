@@ -759,24 +759,13 @@
         }
 
         // logo
-        async function muatLogoAplikasi() {
-            try {
-                const response = await fetch(`${API_URL}/api/app-config`);
-                const result = await response.json();
-                
-                if (result.success && result.logo_url) {
-                    // Setel semua elemen gambar yang memiliki class 'app-logo'
-                    document.querySelectorAll('.app-logo').forEach(img => {
-                        img.src = result.logo_url;
-                    });
-                }
-            } catch (err) {
-                console.error("Gagal memuat logo aplikasi:", err);
+        document.addEventListener('DOMContentLoaded', () => {
+            const logoElement = document.getElementById('app-logo');
+            if (logoElement) {
+                // Menggabungkan API_URL dengan path /logo.png
+                logoElement.src = `${API_URL}/logo.png`;
             }
-        }
-
-        // Jalankan saat DOM selesai dimuat
-        document.addEventListener('DOMContentLoaded', muatLogoAplikasi);
+        });
     </script>
 </body>
 </html>
