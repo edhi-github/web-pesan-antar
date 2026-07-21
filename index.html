@@ -13,6 +13,7 @@
     <!-- 1. HEADER TOKO (DINAMIS) -->
     <header class="bg-white shadow-sm sticky top-0 z-10">
         <div class="max-w-md mx-auto px-4 py-4 flex justify-between items-center">
+           <img src="" alt="Logo Aplikasi" class="app-logo w-10 h-10 object-contain">
             <div>
                 <h1 id="header-nama-warung" class="text-xl font-bold text-orange-600 uppercase">Memuat...</h1>
                 <p id="header-desc" class="text-xs text-gray-500">Menghubungkan ke toko...</p>
@@ -756,6 +757,26 @@
                 })
                 .catch(err => console.error("Gagal sinkronisasi setting warung ke pembeli:", err));
         }
+
+        // logo
+        async function muatLogoAplikasi() {
+            try {
+                const response = await fetch(`${API_URL}/api/app-config`);
+                const result = await response.json();
+                
+                if (result.success && result.logo_url) {
+                    // Setel semua elemen gambar yang memiliki class 'app-logo'
+                    document.querySelectorAll('.app-logo').forEach(img => {
+                        img.src = result.logo_url;
+                    });
+                }
+            } catch (err) {
+                console.error("Gagal memuat logo aplikasi:", err);
+            }
+        }
+
+        // Jalankan saat DOM selesai dimuat
+        document.addEventListener('DOMContentLoaded', muatLogoAplikasi);
     </script>
 </body>
 </html>
