@@ -1204,7 +1204,7 @@
                             btnStok.classList.add('pointer-events-none', 'opacity-50');
                             btnStok.innerText = "🔒 Kelola Stok (Terkunci)";
                         }
-                    } else if (data.remaining_days <= 0) {
+                    } else if (data.remaining_days <= 0||data.remaining_days > -2) {
                         statusLabel.innerText = "MASA TOLERANSI (1 HARI)";
                         remainingText.innerText = "Hari terakhir toleransi! Segera perpanjang paket.";
                         banner.firstElementChild.className = "bg-gradient-to-r from-amber-600 to-orange-600 text-white p-3 rounded-xl shadow-sm flex items-center justify-between";
