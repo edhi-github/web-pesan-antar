@@ -68,12 +68,16 @@
         <div class="max-w-md mx-auto px-4 pt-3 pb-2 flex justify-between items-center">
             <div>
                 <h1 id="nama-warung-header" class="text-lg font-black text-gray-900 tracking-tight uppercase">DAPUR WARUNG</h1>
-                <div class="flex items-center gap-3 mt-1">
+                <div class="flex items-center gap-2 mt-1">
                     <button id="btn-status-warung" onclick="toggleStatusWarung()" class="text-[11px] font-bold px-2.5 py-0.5 rounded-full border transition-all shadow-sm">
                         Status Warung...
                     </button>
                     <button id="btn-setting-warung" onclick="bukaModalSetting()" class="text-[11px] font-bold px-2.5 py-0.5 rounded-full border transition-all shadow-sm bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100">
                         ⚙️ Setting
+                    </button>
+                    <!-- TOMBOL LOG OFF BARU -->
+                    <button onclick="logout()" class="text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 transition-all shadow-sm">
+                        🚪 Log Off
                     </button>
                 </div>
             </div>
@@ -1188,10 +1192,22 @@
 
                     banner.classList.remove('hidden');
 
-                    if (data.is_expired) {
-                        statusLabel.innerText = "MASA LANGGANAN HABIS";
-                        remainingText.innerText = "Akses terbatas, silakan bayar paket";
+                    // Hitung sisa hari termasuk toleransi 1 hari (-1)
+                    if (data.remaining_days < -1) { 
+                        statusLabel.innerText = "LANGGANAN HABIS";
+                        remainingText.innerText = "Akses fitur dapur ditutup, silakan perpanjang paket.";
                         banner.firstElementChild.className = "bg-gradient-to-r from-red-600 to-rose-700 text-white p-3 rounded-xl shadow-sm flex items-center justify-between";
+
+                        // Kunci tombol navigasi utama
+                        const btnStok = document.getElementById('link-admin-stok');
+                        if (btnStok) {
+                            btnStok.classList.add('pointer-events-none', 'opacity-50');
+                            btnStok.innerText = "🔒 Kelola Stok (Terkunci)";
+                        }
+                    } else if (data.remaining_days <= 0) {
+                        statusLabel.innerText = "MASA TOLERANSI (1 HARI)";
+                        remainingText.innerText = "Hari terakhir toleransi! Segera perpanjang paket.";
+                        banner.firstElementChild.className = "bg-gradient-to-r from-amber-600 to-orange-600 text-white p-3 rounded-xl shadow-sm flex items-center justify-between";
                     } else {
                         statusLabel.innerText = `Paket ${data.package_name} (${data.subscription_status.toUpperCase()})`;
                         remainingText.innerText = `Sisa masa aktif: ${data.remaining_days} Hari`;
