@@ -687,13 +687,17 @@
             }
 
             if (confirm(pesanKonfirmasi)) {
-                fetch(`${API_URL}/api/orders/${idOrder}/status`, {
+                // PERBAIKAN: Tambahkan ?shop=${currentShopSlug} pada URL
+                fetch(`${API_URL}/api/orders/${idOrder}/status?shop=${currentShopSlug}`, {
                     method: 'PATCH',
                     headers: { 
                         'Content-Type': 'application/json',
-                        'x-shop-id': localStorage.getItem('shop_id')
+                        'x-shop-id': localStorage.getItem('shop_id') || ''
                     },
-                    body: JSON.stringify({ status: statusBaru })
+                    body: JSON.stringify({ 
+                        status: statusBaru,
+                        shop: currentShopSlug // Sertakan juga di body sebagai cadangan
+                    })
                 })
                 .then(res => res.json())
                 .then(data => {
@@ -707,7 +711,6 @@
                         } else {
                             ambilSelesaiAtauReject(tabAktifSekarang);
                         }
-                        
                     } else {
                         alert(data.message || 'Gagal mengubah status pesanan.');
                     }
