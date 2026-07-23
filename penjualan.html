@@ -1177,13 +1177,39 @@
         cekStatusSubscription();
 
         function cekStatusSubscription() {
-            if (!currentShopSlug) return;
+            // 1. Ambil shop_id dan slug
+            const shopId = localStorage.getItem('shop_id');
+            
+            // Safety check: jika currentShopSlug atau shopId kosong, tampilkan peringatan di console
+            if (!currentShopSlug) {
+                console.warn(" [Subscription Check] Flag 'currentShopSlug' kosong/belum di-set.");
+                return;
+            }
+
+            if (!shopId) {
+                console.error(" [Subscription Check] 'shop_id' TIDAK DITEMUKAN di localStorage!");
+                // Opsi: Jika shopId wajib tapi kosong, Anda bisa beri fallback atau stop fetch di sini
+            }
+
+            console.log(`📡 Fetching subscription... Slug: ${currentShopSlug}, ShopID: ${shopId}`);
 
             fetch(`${API_URL}/api/shops/subscription?shop=${currentShopSlug}`, {
-                headers: { 'x-shop-id': localStorage.getItem('shop_id') }
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'x-shop-id': shopId || '' 
+                }
             })
-            .then(res => res.json())
+            .then(async res => {
+                // Tangkap jika status HTTP BUKAN 200 OK (misal 401, 404, 500)
+                if (!res.ok) {
+                    const errorText = await res.text();
+                    throw new Error(`HTTP Error ${res.status}: ${errorText}`);
+                }
+                return res.json();
+            })
             .then(res => {
+                console.log(" Response Data Subscription:", res);
+
                 if (res.success && res.data) {
                     const data = res.data;
                     const banner = document.getElementById('banner-subscription');
@@ -1191,17 +1217,22 @@
                     const remainingText = document.getElementById('sub-remaining-text');
                     const btnStok = document.getElementById('link-admin-stok');
 
-                    // 1. PASTIKAN BANNER SELALU TAMPIL
+                    // Pastikan elemen banner ditemukan di DOM sebelum memanipulasi class
+                    if (!banner) {
+                        console.error(" Elemen HTML '#banner-subscription' tidak ditemukan di DOM!");
+                        return;
+                    }
+
+                    // TAMPILKAN BANNER
                     banner.classList.remove('hidden');
 
                     const isTrial = data.subscription_status === 'trial' || data.is_trial;
 
-                    // KONDISI 1: SUDAH EXPIRED / LANGGANAN HABIS
+                    // KONDISI 1: SUDAH EXPIRED / HABIS
                     if (data.is_expired) { 
-                        statusLabel.innerText = isTrial ? "MASA TRIAL HABIS" : "LANGGANAN HABIS";
-                        remainingText.innerText = "Masa aktif habis. Segera lakukan pembayaran untuk membuka akses!";
+                        if (statusLabel) statusLabel.innerText = isTrial ? "MASA TRIAL HABIS" : "LANGGANAN HABIS";
+                        if (remainingText) remainingText.innerText = "Masa aktif habis. Segera perpanjang untuk membuka akses!";
                         
-                        // Ubah Banner ke Warna Merah Warning
                         banner.firstElementChild.className = "bg-gradient-to-r from-red-600 to-rose-700 text-white p-3 rounded-xl shadow-sm flex items-center justify-between";
 
                         if (btnStok) {
@@ -1209,13 +1240,14 @@
                             btnStok.innerText = "🔒 Kelola Stok (Terkunci)";
                         }
 
-                        // Tampilkan modal bayar secara otomatis saat terblokir
-                        bukaModalBayarPaket();
+                        if (typeof bukaModalBayarPaket === 'function') {
+                            bukaModalBayarPaket();
+                        }
                     } 
-                    // KONDISI 2: MASA TOLERANSI (TETAP BISA AKSES SEMENTARA)
+                    // KONDISI 2: MASA TOLERANSI
                     else if (data.is_toleransi) {
-                        statusLabel.innerText = "MASA TOLERANSI (1 HARI)";
-                        remainingText.innerText = "Paket Anda telah habis! Segera perpanjang hari ini agar tidak terblokir.";
+                        if (statusLabel) statusLabel.innerText = "MASA TOLERANSI (1 HARI)";
+                        if (remainingText) remainingText.innerText = "Paket Anda telah habis! Segera perpanjang hari ini agar tidak terblokir.";
                         banner.firstElementChild.className = "bg-gradient-to-r from-amber-500 to-orange-600 text-white p-3 rounded-xl shadow-sm flex items-center justify-between";
 
                         if (btnStok) {
@@ -1223,11 +1255,10 @@
                             btnStok.innerText = "📦 Kelola Stok Menu";
                         }
                     } 
-                    // KONDISI 3: MASA TRIAL (MASIH AKTIF)
+                    // KONDISI 3: MASA TRIAL (AKTIF)
                     else if (isTrial) {
-                        statusLabel.innerText = "Masa Gratis / Trial";
-                        remainingText.innerText = `Sisa masa trial: ${data.remaining_days || 0} Hari`;
-                        // Warna Amber / Orange untuk status Trial
+                        if (statusLabel) statusLabel.innerText = "Masa Gratis / Trial";
+                        if (remainingText) remainingText.innerText = `Sisa masa trial: ${data.remaining_days || 0} Hari`;
                         banner.firstElementChild.className = "bg-gradient-to-r from-amber-500 to-orange-600 text-white p-3 rounded-xl shadow-sm flex items-center justify-between";
 
                         if (btnStok) {
@@ -1235,11 +1266,10 @@
                             btnStok.innerText = "📦 Kelola Stok Menu";
                         }
                     }
-                    // KONDISI 4: LANGGANAN BERBAYAR (BERJALAN NORMAL)
+                    // KONDISI 4: BERLANGGANAN AKTIF
                     else {
-                        statusLabel.innerText = `Paket ${data.package_name || 'Aktif'} (${data.subscription_status.toUpperCase()})`;
-                        remainingText.innerText = `Sisa masa aktif: ${data.remaining_days || 0} Hari`;
-                        // Warna Biru / Indigo untuk status Berlangganan Aktif
+                        if (statusLabel) statusLabel.innerText = `Paket ${data.package_name || 'Aktif'} (${data.subscription_status.toUpperCase()})`;
+                        if (remainingText) remainingText.innerText = `Sisa masa aktif: ${data.remaining_days || 0} Hari`;
                         banner.firstElementChild.className = "bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-3 rounded-xl shadow-sm flex items-center justify-between";
 
                         if (btnStok) {
@@ -1247,9 +1277,11 @@
                             btnStok.innerText = "📦 Kelola Stok Menu";
                         }
                     }
+                } else {
+                    console.warn(" API berhasil merespons tetapi res.success = false atau res.data kosong:", res);
                 }
             })
-            .catch(err => console.error("Gagal mengecek langganan:", err));
+            .catch(err => console.error("❌ Gagal mengecek langganan:", err));
         }
 
         function bukaModalBayarPaket() {
