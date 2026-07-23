@@ -1168,6 +1168,100 @@
         function tutupModalBukti() {
             document.getElementById('modal-bukti-bayar').classList.add('hidden');
         }
+
+        // Panggil saat halaman dibuka
+        cekStatusSubscription();
+
+        function cekStatusSubscription() {
+            if (!currentShopSlug) return;
+
+            fetch(`${API_URL}/api/shops/subscription?shop=${currentShopSlug}`, {
+                headers: { 'x-shop-id': localStorage.getItem('shop_id') }
+            })
+            .then(res => res.json())
+            .then(res => {
+                if (res.success && res.data) {
+                    const data = res.data;
+                    const banner = document.getElementById('banner-subscription');
+                    const statusLabel = document.getElementById('sub-status-label');
+                    const remainingText = document.getElementById('sub-remaining-text');
+
+                    banner.classList.remove('hidden');
+
+                    if (data.is_expired) {
+                        statusLabel.innerText = "MASA LANGGANAN HABIS";
+                        remainingText.innerText = "Akses terbatas, silakan bayar paket";
+                        banner.firstElementChild.className = "bg-gradient-to-r from-red-600 to-rose-700 text-white p-3 rounded-xl shadow-sm flex items-center justify-between";
+                    } else {
+                        statusLabel.innerText = `Paket ${data.package_name} (${data.subscription_status.toUpperCase()})`;
+                        remainingText.innerText = `Sisa masa aktif: ${data.remaining_days} Hari`;
+                    }
+                }
+            })
+            .catch(err => console.error("Gagal mengecek langganan:", err));
+        }
+
+        function bukaModalBayarPaket() {
+            document.getElementById('bayar-paket-modal').classList.remove('hidden');
+            
+            // Ambil daftar paket aktif
+            fetch(`${API_URL}/api/packages`)
+            .then(res => res.json())
+            .then(res => {
+                if (res.success) {
+                    const select = document.getElementById('sub-select-package');
+                    select.innerHTML = '';
+                    res.data.forEach(pkg => {
+                        select.innerHTML += `<option value="${pkg.id}">${pkg.name} - Rp ${Number(pkg.price_monthly).toLocaleString('id-ID')}/bln</option>`;
+                    });
+                }
+            });
+        }
+
+        function tutupModalBayarPaket() {
+            document.getElementById('bayar-paket-modal').classList.add('hidden');
+            document.getElementById('form-bayar-paket').reset();
+        }
+
+        function submitPembayaranPaket(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-submit-paket');
+            btn.disabled = true;
+            btn.innerText = "⏳ Mengirim...";
+
+            const packageId = document.getElementById('sub-select-package').value;
+            const cycle = document.getElementById('sub-select-cycle').value;
+            const proofFile = document.getElementById('sub-proof-file').files[0];
+
+            const formData = new FormData();
+            formData.append('shop', currentShopSlug);
+            formData.append('package_id', packageId);
+            formData.append('billing_cycle', cycle);
+            formData.append('payment_proof', proofFile);
+
+            fetch(`${API_URL}/api/shops/subscribe`, {
+                method: 'POST',
+                headers: { 'x-shop-id': localStorage.getItem('shop_id') },
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    tutupModalBayarPaket();
+                } else {
+                    alert("Gagal: " + data.message);
+                }
+                btn.disabled = false;
+                btn.innerText = "Kirim Bukti Bayar";
+            })
+            .catch(err => {
+                console.error(err);
+                alert("Terjadi kesalahan jaringan.");
+                btn.disabled = false;
+                btn.innerText = "Kirim Bukti Bayar";
+            });
+        }
     </script>
 
     <!-- MODAL POPUP BAYAR PAKET -->
