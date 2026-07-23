@@ -259,7 +259,7 @@
             formData.append('stock', document.getElementById('stok').value); 
             
             if (activeFile) {
-                formData.append('image', activeFile);
+                formData.append('foto_produk', activeFile);
             }
 
             let url = API_BASE;
@@ -279,11 +279,24 @@
                 },
                 body: formData
             })
-            .then(res => {
-                if(!res.ok) {
-                    return res.json().then(err => { throw new Error(err.message || 'Gagal menyimpan data') });
+            .then(async res => {
+                // Cek apakah response berupa JSON
+                const contentType = res.headers.get("content-type");
+                let data;
+                
+                if (contentType && contentType.includes("application/json")) {
+                    data = await res.json();
+                } else {
+                    // Jika server mengembalikan HTML (Error 404/500), tangkap sebagai teks
+                    const textError = await res.text();
+                    throw new Error(`Server Error (${res.status}): Terjadi kesalahan pada server/route.`);
                 }
-                return res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.message || 'Gagal menyimpan data produk');
+                }
+
+                return data;
             })
             .then(data => {
                 alert('Sukses! Data menu berhasil disimpan.');
