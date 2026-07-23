@@ -252,12 +252,12 @@
 
             const formData = new FormData();
             formData.append('shop', shopSlug); 
-            formData.append('name', document.getElementById('nama_produk').value);
-            formData.append('category', document.getElementById('kategori').value);
-            formData.append('price', document.getElementById('harga').value);
-            formData.append('description', document.getElementById('deskripsi').value);
+            formData.append('nama_produk', document.getElementById('nama_produk').value); // disesuaikan dari 'name'
+            formData.append('kategori', document.getElementById('kategori').value);       // disesuaikan dari 'category'
+            formData.append('harga', document.getElementById('harga').value);             // disesuaikan dari 'price'
+            formData.append('deskripsi', document.getElementById('deskripsi').value);     // disesuaikan dari 'description'
             formData.append('stock', document.getElementById('stok').value); 
-            
+
             if (activeFile) {
                 formData.append('foto_produk', activeFile);
             }
