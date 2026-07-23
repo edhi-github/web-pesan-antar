@@ -369,20 +369,48 @@
             }
         }
         
-        function tambahItem(productIdAsli, nama, harga) {
+        // FUNGSI UTAMA TAMBAH ITEM DENGAN CEK EXPIRED SECARA REAL-TIME
+        async function tambahItem(productIdAsli, nama, harga) {
             if(!isShopOpen) {
                 alert("Tidak dapat menambah item. Warung sedang tutup!");
                 return;
             }
-            const idUnik = Date.now() + Math.random().toString(36).substr(2, 9);
-            keranjang.push({ 
-                id: idUnik, 
-                product_id: productIdAsli, 
-                nama: nama, 
-                harga: Number(harga),
-                catatan: '' 
-            });
-            hitungTotal();
+
+            try {
+                // 1. Cek status subscription penjual secara real-time
+                const resSub = await fetch(`${API_URL}/api/shops/subscription?shop=${currentShopSlug}`);
+                const subData = await resSub.json();
+
+                if (subData.success && subData.data && subData.data.is_expired) {
+                    alert("⚠️ Layanan Toko Non-Aktif: Masa berlangganan toko telah habis. Pemesanan tidak dapat diproses.");
+                    updateStatusTokoUI(0, true);
+                    return;
+                }
+
+                // 2. Jika toko aktif, tambahkan ke keranjang
+                const idUnik = Date.now() + Math.random().toString(36).substr(2, 9);
+                keranjang.push({ 
+                    id: idUnik, 
+                    product_id: productIdAsli, 
+                    nama: nama, 
+                    harga: Number(harga),
+                    catatan: '' 
+                });
+                hitungTotal();
+
+            } catch (err) {
+                console.error("Gagal melakukan verifikasi status toko:", err);
+                // Fallback jika API subscription belum ada, tetap masukkan ke keranjang
+                const idUnik = Date.now() + Math.random().toString(36).substr(2, 9);
+                keranjang.push({ 
+                    id: idUnik, 
+                    product_id: productIdAsli, 
+                    nama: nama, 
+                    harga: Number(harga),
+                    catatan: '' 
+                });
+                hitungTotal();
+            }
         }
 
         function hapusItem(idUnik) {
@@ -490,11 +518,13 @@
             fetch(`${API_URL}/api/products?shop=${currentShopSlug}`)
                 .then(res => res.json())
                 .then(response => {
+                    const isExpired = response.is_expired || false;
+
                     if (response.hasOwnProperty('is_open')) {
-                        updateStatusTokoUI(response.is_open);
+                        updateStatusTokoUI(response.is_open, isExpired);
                         terapkanSettinganTokoPihakPembeli();
                     } else if (response.data && response.data.length > 0 && response.data[0].hasOwnProperty('shop_status')) {
-                        updateStatusTokoUI(Number(response.data[0].shop_status) === 1);
+                        updateStatusTokoUI(Number(response.data[0].shop_status) === 1, isExpired);
                     }
 
                     if (!response.success || !response.data || response.data.length === 0) {
