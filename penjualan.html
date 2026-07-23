@@ -1191,12 +1191,15 @@
                     const remainingText = document.getElementById('sub-remaining-text');
                     const btnStok = document.getElementById('link-admin-stok');
 
+                    // 1. PASTIKAN BANNER SELALU DITAMPILKAN
                     banner.classList.remove('hidden');
 
                     // KONDISI 1: SUDAH LEWAT MASA TOLERANSI (BLOKIR TOTAL)
                     if (data.is_expired) { 
-                        statusLabel.innerText = "LANGGANAN HABIS";
-                        remainingText.innerText = "Masa toleransi habis. Akses ditutup!";
+                        statusLabel.innerText = "LANGGANAN HABIS / TRIAL EXPIRED";
+                        remainingText.innerText = "Masa aktif habis. Segera lakukan pembayaran untuk membuka akses!";
+                        
+                        // Ubah background banner jadi Merah Warning
                         banner.firstElementChild.className = "bg-gradient-to-r from-red-600 to-rose-700 text-white p-3 rounded-xl shadow-sm flex items-center justify-between";
 
                         if (btnStok) {
@@ -1204,30 +1207,30 @@
                             btnStok.innerText = "🔒 Kelola Stok (Terkunci)";
                         }
 
-                        // Modal bayar dipaksa muncul
+                        // Modal bayar otomatis muncul
                         bukaModalBayarPaket();
                     } 
-                    // KONDISI 2: MASA TOLERANSI (1 HARI) -> MASIH BISA AKSES, TAPI ADA PERINGATAN
+                    // KONDISI 2: MASA TOLERANSI (1 HARI)
                     else if (data.is_toleransi) {
                         statusLabel.innerText = "MASA TOLERANSI (1 HARI)";
                         remainingText.innerText = "Paket Anda telah habis! Segera perpanjang hari ini agar tidak terblokir.";
                         banner.firstElementChild.className = "bg-gradient-to-r from-amber-500 to-orange-600 text-white p-3 rounded-xl shadow-sm flex items-center justify-between";
 
-                        // Tombol stok tetap bisa diakses
                         if (btnStok) {
                             btnStok.classList.remove('pointer-events-none', 'opacity-50');
-                            btnStok.innerText = "Kelola Stok";
+                            btnStok.innerText = "📦 Kelola Stok Menu";
                         }
                     } 
-                    // KONDISI 3: MASIH AKTIF NORMAL
+                    // KONDISI 3: MASIH AKTIF NORMAL / TRIAL
                     else {
-                        statusLabel.innerText = `Paket ${data.package_name} (${data.subscription_status.toUpperCase()})`;
+                        const isTrial = data.subscription_status === 'trial';
+                        statusLabel.innerText = isTrial ? "Masa Gratis / Trial" : `Paket ${data.package_name} (${data.subscription_status.toUpperCase()})`;
                         remainingText.innerText = `Sisa masa aktif: ${data.remaining_days} Hari`;
                         banner.firstElementChild.className = "bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-3 rounded-xl shadow-sm flex items-center justify-between";
 
                         if (btnStok) {
                             btnStok.classList.remove('pointer-events-none', 'opacity-50');
-                            btnStok.innerText = "Kelola Stok";
+                            btnStok.innerText = "📦 Kelola Stok Menu";
                         }
                     }
                 }
