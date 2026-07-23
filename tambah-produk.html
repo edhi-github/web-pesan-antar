@@ -252,10 +252,10 @@
 
             const formData = new FormData();
             formData.append('shop', shopSlug); 
-            formData.append('nama_produk', document.getElementById('nama_produk').value); // disesuaikan dari 'name'
-            formData.append('kategori', document.getElementById('kategori').value);       // disesuaikan dari 'category'
-            formData.append('harga', document.getElementById('harga').value);             // disesuaikan dari 'price'
-            formData.append('deskripsi', document.getElementById('deskripsi').value);     // disesuaikan dari 'description'
+            formData.append('nama_produk', document.getElementById('nama_produk').value);
+            formData.append('kategori', document.getElementById('kategori').value);
+            formData.append('harga', document.getElementById('harga').value);
+            formData.append('deskripsi', document.getElementById('deskripsi').value);
             formData.append('stock', document.getElementById('stok').value); 
 
             if (activeFile) {
@@ -271,29 +271,27 @@
                 formData.append('_method', 'PUT');
             }
 
-            // Fetch 2: Simpan produk baru / update data dengan x-shop-id header[cite: 7]
+            // Pastikan x-shop-id terisi, jika null buat string kosong agar fallback ke backend query
+            const shopIdHeader = localStorage.getItem('shop_id') || '';
+
             fetch(url, {
                 method: method,
                 headers: {
-                    'x-shop-id': localStorage.getItem('shop_id')
+                    'x-shop-id': shopIdHeader
                 },
                 body: formData
             })
             .then(async res => {
-                // Cek apakah response berupa JSON
                 const contentType = res.headers.get("content-type");
-                let data;
+                let data = {};
                 
                 if (contentType && contentType.includes("application/json")) {
                     data = await res.json();
-                } else {
-                    // Jika server mengembalikan HTML (Error 404/500), tangkap sebagai teks
-                    const textError = await res.text();
-                    throw new Error(`Server Error (${res.status}): Terjadi kesalahan pada server/route.`);
                 }
 
+                // Jika respons tidak OK, lempar pesan error dari server
                 if (!res.ok) {
-                    throw new Error(data.message || 'Gagal menyimpan data produk');
+                    throw new Error(data.message || `HTTP Error ${res.status}`);
                 }
 
                 return data;
@@ -303,7 +301,7 @@
                 window.location.href = `admin.html?shop=${shopSlug}`;
             })
             .catch(err => {
-                console.error(err);
+                console.error("Detail Error:", err);
                 alert('Terjadi kesalahan: ' + err.message);
             })
             .finally(() => {
