@@ -324,8 +324,8 @@
         // ==========================================
         // LOGIKA PENERAPAN STATUS TOKO
         // ==========================================
-        function updateStatusTokoUI(isOpen) {
-            const isTrueOpen = Number(isOpen) === 1 || isOpen === true;
+        function updateStatusTokoUI(isOpen, isExpired = false) {
+            const isTrueOpen = (Number(isOpen) === 1 || isOpen === true) && !isExpired;
             isShopOpen = isTrueOpen;
             
             const statusBadge = document.getElementById('status-toko');
@@ -338,7 +338,16 @@
                     statusBadge.className = "bg-red-100 text-red-800 text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1";
                     statusBadge.innerHTML = `<span class="w-2 h-2 bg-red-500 rounded-full"></span> Tutup`;
                 }
-                if (alertTokoTutup) alertTokoTutup.classList.remove('hidden');
+                
+                if (alertTokoTutup) {
+                    alertTokoTutup.classList.remove('hidden');
+                    if (isExpired) {
+                        alertTokoTutup.innerHTML = `🔒 <strong>Mohon Maaf:</strong> Warung saat ini sedang tidak beroperasi (Masa Layanan Non-Aktif). Pemesanan dihentikan sementara.`;
+                    } else {
+                        alertTokoTutup.innerHTML = `🔒 <strong>Mohon Maaf:</strong> Warung saat ini sedang Tutup. Anda tidak dapat melakukan pemesanan untuk sementara waktu.`;
+                    }
+                }
+                
                 if (bannerWarung) bannerWarung.classList.add('hidden');
                 if (btnSubmitOrder) {
                     btnSubmitOrder.disabled = true;
