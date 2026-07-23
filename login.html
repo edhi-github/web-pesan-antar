@@ -101,11 +101,12 @@
                     // SIMPAN DATA AUTENTIKASI KE LOCALSTORAGE
                     localStorage.setItem('isLoggedIn', 'true');
                     localStorage.setItem('current_shop_slug', targetSlug);
+                    
                     if (data.shop_id) {
-                        localStorage.setItem('shop_id', data.shop_id);
+                        localStorage.setItem('shop_id', data.shop_id.toString());
                     }
 
-                    // Alihkan ke penjualan.html membawa parameter shop yang valid
+                    // Alihkan ke penjualan.html
                     window.location.href = `penjualan.html?shop=${targetSlug}`;
                 } else {
                     errorDiv.innerText = data.message || 'Username atau password salah.';
