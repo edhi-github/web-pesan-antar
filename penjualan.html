@@ -112,6 +112,19 @@
         </div>
     </header>
 
+    <!-- BANNER INFORMASI PAKET & PERPANJANGAN -->
+    <div id="banner-subscription" class="max-w-md mx-auto px-4 pt-3 hidden no-print">
+        <div class="bg-gradient-to-r from-amber-500 to-orange-600 text-white p-3 rounded-xl shadow-sm flex items-center justify-between">
+            <div>
+                <span class="text-[10px] font-bold uppercase tracking-wider block opacity-90" id="sub-status-label">Masa Gratis / Trial</span>
+                <span class="text-xs font-black" id="sub-remaining-text">Sisa 14 Hari Lagi</span>
+            </div>
+            <button onclick="bukaModalBayarPaket()" class="bg-white text-orange-600 hover:bg-orange-50 font-bold text-xs px-3 py-1.5 rounded-lg shadow transition">
+                💳 Bayar Paket
+            </button>
+        </div>
+    </div>
+
     <!-- 2. KONTEN UTAMA DAFTAR KARTU -->
     <main class="max-w-md mx-auto p-4 pb-20 no-print">
         <div id="container-pesanan" class="space-y-4">
@@ -1156,5 +1169,49 @@
             document.getElementById('modal-bukti-bayar').classList.add('hidden');
         }
     </script>
+
+    <!-- MODAL POPUP BAYAR PAKET -->
+    <div id="bayar-paket-modal" class="fixed inset-0 bg-black/60 z-40 hidden flex items-center justify-center p-4 backdrop-blur-sm no-print">
+        <div class="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="text-base font-bold text-gray-900">💳 Perpanjang Paket Langganan</h3>
+                <button onclick="tutupModalBayarPaket()" class="text-gray-400 hover:text-gray-600 text-2xl font-bold">×</button>
+            </div>
+
+            <!-- Rincian Rekening Tujuan -->
+            <div class="bg-orange-50 border border-orange-200 p-3 rounded-xl text-xs space-y-1">
+                <span class="font-bold text-orange-900 block">Bank Transfer Tujuan:</span>
+                <p class="text-orange-800 font-medium">Bank BCA: <strong>123-456-7890</strong> a/n PT Aplikasi Warung</p>
+                <p class="text-[10px] text-orange-700">Silakan transfer sesuai harga paket yang dipilih lalu unggah buktinya di bawah ini.</p>
+            </div>
+
+            <form id="form-bayar-paket" class="space-y-4 text-xs" onsubmit="submitPembayaranPaket(event)">
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">Pilih Paket</label>
+                    <select id="sub-select-package" class="w-full border border-gray-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-orange-500">
+                        <!-- Dinamis via JS -->
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">Siklus Tagihan</label>
+                    <select id="sub-select-cycle" class="w-full border border-gray-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-orange-500">
+                        <option value="monthly">Bulanan</option>
+                        <option value="yearly">Tahunan (Lebih Hemat)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">Upload Bukti Transfer (.JPG / .PNG)</label>
+                    <input type="file" id="sub-proof-file" accept="image/*" required class="w-full text-xs file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-orange-100 file:text-orange-700 hover:file:bg-orange-200">
+                </div>
+
+                <div class="border-t pt-3 flex gap-2">
+                    <button type="button" onclick="tutupModalBayarPaket()" class="w-1/2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 rounded-xl transition">Batal</button>
+                    <button type="submit" id="btn-submit-paket" class="w-1/2 bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 rounded-xl transition">Kirim Bukti Bayar</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </body>
 </html>
