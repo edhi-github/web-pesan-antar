@@ -217,6 +217,46 @@
         const urlParams = new URLSearchParams(window.location.search);
         const currentShopSlug = urlParams.get('shop');
 
+        // ==========================================
+        // LOGIKA SESSION & VALIDASI REFRESH OTOMATIS
+        // ==========================================
+        const MAX_SESSION_AGE_MS = 0.1 * 60 * 60 * 1000; // Contoh: 1 Jam (Ubah sesuai kebutuhan, misal 6 * 60 * 60 * 1000 untuk 6 jam)
+
+        function periksaDanValidasiSesi() {
+            const lastVisit = localStorage.getItem('last_visit_time');
+            const now = Date.now();
+
+            if (lastVisit) {
+                const timePassed = now - parseInt(lastVisit, 10);
+                
+                // Jika sudah lebih dari batas waktu yang ditentukan
+                if (timePassed > MAX_SESSION_AGE_MS) {
+                    console.log("Sesi sudah terlalu lama. Memaksa refresh halaman...");
+                    // Perbarui timestamp agar tidak terjadi infinite loop refresh
+                    localStorage.setItem('last_visit_time', now.toString());
+                    // Clear cache/reservasi jika ada
+                    localStorage.removeItem('active_reservation'); 
+                    // Reload halaman secara total dari server
+                    window.location.reload(true);
+                    return false;
+                }
+            }
+            
+            // Simpan/perbarui waktu aktivitas terakhir
+            localStorage.setItem('last_visit_time', now.toString());
+            return true;
+        }
+
+        // Jalankan pemeriksaan saat halaman pertama kali di-load
+        periksaDanValidasiSesi();
+
+        // Deteksi jika user kembali membuka tab yang sempat ditinggalkan lama (Page Visibility API)
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "visible") {
+                periksaDanValidasiSesi();
+            }
+        });
+
         let keranjang = [];
         let totalHarga = 0; 
         let grandTotal = 0; 
