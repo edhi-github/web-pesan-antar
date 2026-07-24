@@ -369,21 +369,20 @@
             }
         }
         
-        // FUNGSI UTAMA TAMBAH ITEM DENGAN REAL-TIME CHECK (1. Status Toko, 2. Subscription, 3. Stok, 4. Availability)
+        // FUNGSI TAMBAH ITEM DENGAN HITUNG SISA STOK SEMENTARA (LOKAL KERANJANG)
         async function tambahItem(productIdAsli, nama, harga) {
             try {
-                // Fetch data produk & status toko secara real-time dari server
+                // 1. Fetch data produk & status toko terbaru dari server secara real-time
                 const res = await fetch(`${API_URL}/api/products?shop=${currentShopSlug}`);
                 const response = await res.json();
 
-                // 1 & 2. Cek status toko (is_open) dan subscription (is_expired)
+                // Cek status operasional warung & langganan
                 if (!response.success || response.is_open === 0 || response.is_expired) {
                     alert("🔒 Mohon maaf, warung saat ini sedang TUTUP atau masa langganan non-aktif.");
                     updateStatusTokoUI(0, response.is_expired);
                     return;
                 }
 
-                // Cari item produk yang dimaksud dari response server
                 const daftarProduk = response.data || [];
                 const produkTerbaru = daftarProduk.find(p => String(p.id) === String(productIdAsli));
 
@@ -392,25 +391,35 @@
                     return;
                 }
 
-                // 3. Cek stok produk (field: stock)
-                if (produkTerbaru.stock <= 0) {
-                    alert(`⚠️ Stok untuk "${nama}" sudah HABIS! Tidak dapat menambahkan ke keranjang.`);
-                    muatProdukDariDatabase(); // Refresh tampilan UI menu
-                    return;
-                }
-
-                // 4. Cek ketersediaan produk (field: is_available)
+                // Cek ketersediaan menu (is_available)
                 const isAvailable = produkTerbaru.is_available !== 0 && 
                                     produkTerbaru.is_available !== '0' && 
                                     produkTerbaru.is_available !== false;
 
                 if (!isAvailable) {
                     alert(`⚠️ Menu "${nama}" saat ini sedang TIDAK TERSEDIA.`);
-                    muatProdukDariDatabase(); // Refresh tampilan UI menu
+                    muatProdukDariDatabase();
                     return;
                 }
 
-                // --- Jika Semua Validasi Lolos, Masukkan ke Keranjang ---
+                // 2. LOGIKA HITUNG SISA STOK SEMENTARA (REAL-TIME DB STOCK - JUMLAH DI KERANJANG)
+                const stokDiDatabase = produkTerbaru.stock;
+                
+                // Hitung berapa kali produk ini sudah dimasukkan ke keranjang saat ini
+                const jumlahDiKeranjang = keranjang.filter(item => String(item.product_id) === String(productIdAsli)).length;
+
+                // Cek apakah penambahan +1 item melebihi stok yang ada
+                if (jumlahDiKeranjang + 1 > stokDiDatabase) {
+                    if (stokDiDatabase <= 0) {
+                        alert(`⚠️ Stok untuk "${nama}" sudah HABIS!`);
+                    } else {
+                        alert(`⚠️ Stok "${nama}" tidak mencukupi! Sisa stok hanya ${stokDiDatabase} pcs, dan Anda sudah memasukkan ${jumlahDiKeranjang} pcs ke keranjang.`);
+                    }
+                    muatProdukDariDatabase(); // Refresh UI
+                    return;
+                }
+
+                // 3. Masukkan item ke keranjang belanja sementara jika stok mencukupi
                 const idUnik = Date.now() + Math.random().toString(36).substr(2, 9);
                 keranjang.push({ 
                     id: idUnik, 
@@ -423,8 +432,8 @@
                 hitungTotal();
 
             } catch (err) {
-                console.error("Gagal melakukan verifikasi saat tambah item:", err);
-                alert("Gagal terhubung ke server untuk memeriksa ketersediaan menu.");
+                console.error("Gagal melakukan verifikasi stok saat tambah item:", err);
+                alert("Gagal terhubung ke server untuk memeriksa stok menu.");
             }
         }
 
