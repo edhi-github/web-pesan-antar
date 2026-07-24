@@ -785,9 +785,10 @@
 
         function cekStatusWarung() {
             if (!currentShopSlug) return;
+
             fetch(`${API_URL}/api/shops/status?shop=${currentShopSlug}`, {
                 headers: {
-                    'x-shop-id': localStorage.getItem('shop_id')
+                    'x-shop-id': localStorage.getItem('shop_id') || ''
                 }
             })
             .then(res => res.json())
@@ -797,17 +798,32 @@
                     perbaruiTampilanTombolStatus(statusWarungSekarang);
                 }
             })
-            .catch(err => console.error('Gagal mengambil status warung:', err));
+            .catch(err => {
+                console.error('Gagal mengambil status warung:', err);
+                // Fallback: ambil status lewat endpoint settings jika endpoint status berkendala
+                fetch(`${API_URL}/api/shops/settings?shop=${currentShopSlug}`, {
+                    headers: { 'x-shop-id': localStorage.getItem('shop_id') || '' }
+                })
+                .then(res => res.json())
+                .then(resSettings => {
+                    if (resSettings.success && resSettings.data) {
+                        statusWarungSekarang = Number(resSettings.data.is_open);
+                        perbaruiTampilanTombolStatus(statusWarungSekarang);
+                    }
+                });
+            });
         }
 
         function perbaruiTampilanTombolStatus(isOpen) {
             const btn = document.getElementById('btn-status-warung');
-            if (isOpen == 1) {
+            if (!btn) return;
+
+            if (Number(isOpen) === 1) {
                 btn.className = "text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-green-50 border border-green-300 text-green-700 hover:bg-green-100 transition-all shadow-sm";
-                btn.innerText = "🟢 Warung Buka";
+                btn.innerText = "🟢 Status Warung : Buka";
             } else {
                 btn.className = "text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-red-50 border border-red-300 text-red-700 hover:bg-red-100 transition-all shadow-sm";
-                btn.innerText = "🔴 Warung Tutup";
+                btn.innerText = "🔴 Status Warung : Tutup";
             }
         }
 
