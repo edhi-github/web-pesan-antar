@@ -331,6 +331,10 @@
                             statusColor = "bg-yellow-100 text-yellow-800 animate-pulse";
                             statusLabel = "Sedang di Proses";
                         }
+                        if (order.status === 'selesai') {
+                            statusColor = "bg-green-100 text-green-800 animate-pulse";
+                            statusLabel = "Pesanan Selesai/Sedang Diantar";
+                        }
 
                         let itemsListHtml = '';
                         order.items.forEach(it => {
