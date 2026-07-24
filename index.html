@@ -524,13 +524,83 @@
             if (item) item.catatan = teksCatatan;
         }
 
-        function bukaModalPesanan() {
-            if(!isShopOpen) {
+        // GANTI FUNGSI bukaModalPesanan() LAMA DENGAN INI:
+        async function bukaModalPesanan() {
+            if (!isShopOpen) {
                 alert("Warung telah tutup. Proses checkout tidak dapat dilanjutkan.");
                 return;
             }
-            document.getElementById('order-modal').classList.remove('hidden');
-            renderModalItems(); 
+
+            if (keranjang.length === 0) {
+                alert("Keranjang belanja Anda kosong!");
+                return;
+            }
+
+            // Tampilkan indikator loading sementara
+            const btnLanjut = document.querySelector('#cart-bar button');
+            const textAwal = btnLanjut.innerText;
+            btnLanjut.disabled = true;
+            btnLanjut.innerText = "Checking...";
+
+            try {
+                // Fetch data produk real-time terbaru dari database
+                const res = await fetch(`${API_URL}/api/products?shop=${currentShopSlug}`);
+                const response = await res.json();
+
+                // 1. Cek Operasional & Expired Toko
+                if (!response.success || response.is_open === 0 || response.is_expired) {
+                    alert("🔒 Mohon maaf, toko saat ini telah TUTUP / Tidak Aktif.");
+                    updateStatusTokoUI(0, response.is_expired);
+                    keranjang = [];
+                    hitungTotal();
+                    btnLanjut.disabled = false;
+                    btnLanjut.innerText = textAwal;
+                    return;
+                }
+
+                const dbProducts = response.data || [];
+                let itemsDihapus = [];
+
+                // 2. Hitung total kebutuhan tiap produk di keranjang
+                const orderCounts = {};
+                keranjang.forEach(item => {
+                    orderCounts[item.product_id] = (orderCounts[item.product_id] || 0) + 1;
+                });
+
+                // 3. Filter keranjang: Buang item yang stoknya tidak mencukupi / tidak tersedia
+                keranjang = keranjang.filter(item => {
+                    const prodDb = dbProducts.find(p => String(p.id) === String(item.product_id));
+                    const isAvailable = prodDb && prodDb.is_available != 0 && prodDb.is_available !== false;
+                    
+                    if (!prodDb || !isAvailable || prodDb.stock < orderCounts[item.product_id]) {
+                        if (!itemsDihapus.includes(item.nama)) {
+                            itemsDihapus.push(item.nama);
+                        }
+                        return false; // Hapus dari keranjang
+                    }
+                    return true; // Simpan di keranjang
+                });
+
+                // Update tampilan keranjang & total harga
+                hitungTotal();
+
+                if (itemsDihapus.length > 0) {
+                    alert(`⚠️ Perhatian!\nMenu berikut telah HABIS/TIDAK TERSEDIA dan dibatalkan dari keranjang Anda:\n- ${itemsDihapus.join('\n- ')}`);
+                    muatProdukDariDatabase(); // Refresh daftar menu di halaman
+                }
+
+                if (keranjang.length > 0) {
+                    document.getElementById('order-modal').classList.remove('hidden');
+                    renderModalItems();
+                }
+
+            } catch (err) {
+                console.error("Gagal memeriksa ketersediaan pesanan:", err);
+                alert("Gagal terhubung ke server untuk memvalidasi stok.");
+            } finally {
+                btnLanjut.disabled = false;
+                btnLanjut.innerText = textAwal;
+            }
         }
 
         function tutupModalPesanan() {
@@ -647,7 +717,7 @@
             }
         }
 
-        function kirimPesananKeSistem(event) {
+        async function kirimPesananKeSistem(event) {
             event.preventDefault();
             if (!isShopOpen) { alert("Gagal memproses. Warung sedang tutup!"); return; }
             if (keranjang.length === 0) { alert("Keranjang belanja Anda kosong!"); return; }
@@ -662,32 +732,9 @@
             }
 
             btnSubmit.disabled = true;
-            btnSubmit.innerText = "⏳ Memeriksa Ketersediaan Menu...";
+            btnSubmit.innerText = "⏳ Memproses Reservasi Stok...";
 
-            fetch(`${API_URL}/api/products?shop=${currentShopSlug}`)
-            .then(res => res.json())
-            .then(response => {
-                const daftarProdukServer = response.data || [];
-                let adaMenuHabis = false;
-                let namaMenuHabis = [];
-
-                keranjang.forEach(itemBaru => {
-                    const produkTerbaruServer = daftarProdukServer.find(p => String(p.id) === String(itemBaru.product_id));
-                    if (!produkTerbaruServer || produkTerbaruServer.stock < 1 || produkTerbaruServer.is_available === 0) {
-                        adaMenuHabis = true;
-                        namaMenuHabis.push(itemBaru.nama);
-                    }
-                });
-
-                if (adaMenuHabis) {
-                    alert(`⚠️ Gagal Mengirim! Menu berikut telah HABIS beberapa saat lalu:\n- ${namaMenuHabis.join('\n- ')}`);
-                    muatProdukDariDatabase();
-                    btnSubmit.disabled = false;
-                    btnSubmit.innerText = "🚀 Kirim Pesanan ke Penjual";
-                    return; 
-                }
-
-                btnSubmit.innerText = "⏳ Sedang Mengirim Pesanan...";
+            try {
                 const nama = document.getElementById('cust-name').value;
                 const phone = document.getElementById('cust-phone').value;
                 const table = document.getElementById('cust-table').value;
@@ -698,42 +745,66 @@
                     catatan: item.catatan || ''
                 }));
 
-                const formData = new FormData();
-                formData.append('shop', currentShopSlug);
-                formData.append('customer_name', nama);
-                formData.append('customer_phone', phone);
-                formData.append('table_or_address', table);
-                formData.append('total_price', grandTotal); // Kirim total yang sudah dikalkulasi dengan pajak ke DB
-                formData.append('items', JSON.stringify(itemsValid));
-                formData.append('payment_method', isCash ? 'cash' : 'transfer');
-                
-                if (!isCash && fileInput.files.length > 0) {
-                    formData.append('payment_proof', fileInput.files[0]);
-                }
+                // STEP 1: Buat Reservasi Stok Terlebih Dahulu
+                const reserveRes = await fetch(`${API_URL}/api/orders/reserve`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        shop: currentShopSlug,
+                        customer_name: nama,
+                        customer_phone: phone,
+                        table_or_address: table,
+                        items: itemsValid,
+                        payment_method: isCash ? 'cash' : 'transfer'
+                    })
+                });
 
-                return fetch(`${API_URL}/api/orders`, { method: 'POST', body: formData });
-            })
-            .then(res => { if (res) return res.json(); })
-            .then(data => {
-                if (!data) return;
-                if (data.success) {
-                    alert(`Terima kasih! Pesanan Berhasil Dikirim dengan metode [${isCash ? 'CASH, Silahkan ke KASIR untuk pembayaran' : 'TRANSFER'}] (ID: #ORD-${data.order_id})`);
-                    keranjang = [];
-                    hitungTotal();
-                    tutupModalPesanan();
-                    document.getElementById('form-checkout').reset();
-                    window.location.reload();
-                } else {
-                    alert('Gagal mengirim pesanan: ' + data.message);
+                const reserveData = await reserveRes.json();
+
+                if (!reserveData.success) {
+                    alert('Gagal melakukan reservasi: ' + reserveData.message);
+                    muatProdukDariDatabase();
                     btnSubmit.disabled = false;
                     btnSubmit.innerText = "🚀 Kirim Pesanan ke Penjual";
+                    return;
                 }
-            })
-            .catch(error => {
+
+                const orderId = reserveData.order_id;
+
+                // STEP 2: Jika Transfer, Upload Bukti Bayar untuk Order ID tersebut
+                if (!isCash) {
+                    btnSubmit.innerText = "⏳ Mengunggah Bukti Pembayaran...";
+                    const uploadData = new FormData();
+                    uploadData.append('payment_proof', fileInput.files[0]);
+
+                    const uploadRes = await fetch(`${API_URL}/api/orders/${orderId}/upload-proof`, {
+                        method: 'POST',
+                        body: uploadData
+                    });
+
+                    const uploadResult = await uploadRes.json();
+
+                    if (!uploadResult.success) {
+                        alert('Reservasi berhasil (#ORD-' + orderId + '), namun bukti bayar gagal diunggah: ' + uploadResult.message + '\n\nSilakan unggah ulang via menu Lacak Pesanan.');
+                        window.location.reload();
+                        return;
+                    }
+                }
+
+                // STEP 3: Sukses
+                alert(`Terima kasih! Pesanan Berhasil Dikirim dengan metode [${isCash ? 'CASH, Silahkan ke KASIR untuk pembayaran' : 'TRANSFER'}] (ID: #ORD-${orderId})`);
+                keranjang = [];
+                hitungTotal();
+                tutupModalPesanan();
+                document.getElementById('form-checkout').reset();
+                window.location.reload();
+
+            } catch (error) {
                 console.error('Error Checkout:', error);
+                alert('Terjadi kesalahan jaringan atau server.');
                 btnSubmit.disabled = false;
                 btnSubmit.innerText = "🚀 Kirim Pesanan ke Penjual";
-            });
+            }
         }  
 
         function toggleInfoPembayaran() {
