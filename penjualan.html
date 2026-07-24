@@ -1229,7 +1229,7 @@
             .then(res => {
                 console.log(" Response Data Subscription:", res);
 
-                if (res.success && res.data) {
+                /*if (res.success && res.data) {
                     const data = res.data;
                     const banner = document.getElementById('banner-subscription');
                     const statusLabel = document.getElementById('sub-status-label');
@@ -1296,7 +1296,49 @@
                             btnStok.innerText = "📦 Kelola Stok Menu";
                         }
                     }
-                } else {
+                } */
+                // Gantilah pengondisian status pada fungsi cekStatusSubscription() dengan logika ini:
+                if (res.success && res.data) {
+                    const data = res.data;
+                    const banner = document.getElementById('banner-subscription');
+                    const statusLabel = document.getElementById('sub-status-label');
+                    const remainingText = document.getElementById('sub-remaining-text');
+                    const btnStok = document.getElementById('link-admin-stok');
+
+                    if (!banner) return;
+                    banner.classList.remove('hidden');
+
+                    const isTrial = data.subscription_status === 'trial' || data.is_trial;
+
+                    // KONDISI PENDING: Menunggu Verifikasi Admin
+                    if (data.subscription_status === 'pending') {
+                        if (statusLabel) statusLabel.innerText = "MENUNGGU VERIFIKASI (PENDING)";
+                        if (remainingText) remainingText.innerText = "Bukti bayar Anda sedang dicek oleh admin. Akses akan aktif setelah dikonfirmasi.";
+                        banner.firstElementChild.className = "bg-gradient-to-r from-amber-600 to-yellow-600 text-white p-3 rounded-xl shadow-sm flex items-center justify-between";
+                    }
+                    // KONDISI EXPIRED
+                    else if (data.is_expired) { 
+                        if (statusLabel) statusLabel.innerText = isTrial ? "MASA TRIAL HABIS" : "LANGGANAN HABIS";
+                        if (remainingText) remainingText.innerText = "Masa aktif habis. Segera perpanjang untuk membuka akses!";
+                        banner.firstElementChild.className = "bg-gradient-to-r from-red-600 to-rose-700 text-white p-3 rounded-xl shadow-sm flex items-center justify-between";
+
+                        if (btnStok) {
+                            btnStok.classList.add('pointer-events-none', 'opacity-50');
+                            btnStok.innerText = "🔒 Kelola Stok (Terkunci)";
+                        }
+                    } 
+                    // KONDISI TRIAL / AKTIF LAINNYA
+                    else if (isTrial) {
+                        if (statusLabel) statusLabel.innerText = "Masa Gratis / Trial";
+                        if (remainingText) remainingText.innerText = `Sisa masa trial: ${data.remaining_days || 0} Hari`;
+                        banner.firstElementChild.className = "bg-gradient-to-r from-amber-500 to-orange-600 text-white p-3 rounded-xl shadow-sm flex items-center justify-between";
+                    } 
+                    else {
+                        if (statusLabel) statusLabel.innerText = `Paket ${data.package_name || 'Aktif'}`;
+                        if (remainingText) remainingText.innerText = `Sisa masa aktif: ${data.remaining_days || 0} Hari`;
+                        banner.firstElementChild.className = "bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-3 rounded-xl shadow-sm flex items-center justify-between";
+                    }
+                }else {
                     console.warn(" API berhasil merespons tetapi res.success = false atau res.data kosong:", res);
                 }
             })
