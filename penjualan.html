@@ -1333,33 +1333,48 @@
 
             const packageId = document.getElementById('sub-select-package').value;
             const cycle = document.getElementById('sub-select-cycle').value;
-            const proofFile = document.getElementById('sub-proof-file').files[0];
+            const proofFileInput = document.getElementById('sub-proof-file');
+            const proofFile = proofFileInput ? proofFileInput.files[0] : null;
+
+            if (!proofFile) {
+                alert("Mohon pilih/upload file bukti transfer terlebih dahulu.");
+                btn.disabled = false;
+                btn.innerText = "Kirim Bukti Bayar";
+                return;
+            }
 
             const formData = new FormData();
             formData.append('shop', currentShopSlug);
             formData.append('package_id', packageId);
             formData.append('billing_cycle', cycle);
-            formData.append('payment_proof', proofFile);
+            formData.append('payment_proof_url', proofFile); // Memastikan nama field: payment_proof
+
+            const shopId = localStorage.getItem('shop_id');
 
             fetch(`${API_URL}/api/shops/subscribe`, {
                 method: 'POST',
-                headers: { 'x-shop-id': localStorage.getItem('shop_id') },
+                headers: { 
+                    'x-shop-id': shopId || '' 
+                },
                 body: formData
             })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    alert(data.message);
+            .then(async res => {
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    alert(data.message || "Bukti perpanjangan berhasil dikirim! Menunggu konfirmasi admin.");
                     tutupModalBayarPaket();
+                    if (typeof cekStatusSubscription === 'function') {
+                        cekStatusSubscription();
+                    }
                 } else {
-                    alert("Gagal: " + data.message);
+                    alert("Gagal: " + (data.message || "Terjadi kesalahan saat memproses pembayaran paket."));
                 }
                 btn.disabled = false;
                 btn.innerText = "Kirim Bukti Bayar";
             })
             .catch(err => {
-                console.error(err);
-                alert("Terjadi kesalahan jaringan.");
+                console.error("Error submitPembayaranPaket:", err);
+                alert("Terjadi kesalahan jaringan atau server.");
                 btn.disabled = false;
                 btn.innerText = "Kirim Bukti Bayar";
             });
