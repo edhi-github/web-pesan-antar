@@ -375,8 +375,8 @@
         // ==========================================
         // LOGIKA PENERAPAN STATUS TOKO
         // ==========================================
-        function updateStatusTokoUI(isOpen, isExpired = false) {
-            const isTrueOpen = (Number(isOpen) === 1 || isOpen === true) && !isExpired;
+        function updateStatusTokoUI(isOpen, isExpired = false, isLimitReached = false) {
+            const isTrueOpen = (Number(isOpen) === 1 || isOpen === true) && !isExpired && !isLimitReached;
             isShopOpen = isTrueOpen;
             
             const statusBadge = document.getElementById('status-toko');
@@ -392,7 +392,9 @@
                 
                 if (alertTokoTutup) {
                     alertTokoTutup.classList.remove('hidden');
-                    if (isExpired) {
+                    if (isLimitReached) {
+                        alertTokoTutup.innerHTML = `🔒 <strong>Mohon Maaf:</strong> Warung ini telah mencapai batas kuota transaksi bulanan. Pemesanan dihentikan sementara.`;
+                    } else if (isExpired) {
                         alertTokoTutup.innerHTML = `🔒 <strong>Mohon Maaf:</strong> Warung saat ini sedang tidak beroperasi (Masa Layanan Non-Aktif). Pemesanan dihentikan sementara.`;
                     } else {
                         alertTokoTutup.innerHTML = `🔒 <strong>Mohon Maaf:</strong> Warung saat ini sedang Tutup. Anda tidak dapat melakukan pemesanan untuk sementara waktu.`;
@@ -714,9 +716,10 @@
                 .then(res => res.json())
                 .then(response => {
                     const isExpired = response.is_expired || false;
+                    const isLimitReached = response.is_limit_reached || false;
 
                     if (response.hasOwnProperty('is_open')) {
-                        updateStatusTokoUI(response.is_open, isExpired);
+                        updateStatusTokoUI(response.is_open, isExpired, isLimitReached);
                         terapkanSettinganTokoPihakPembeli();
                     } else if (response.data && response.data.length > 0 && response.data[0].hasOwnProperty('shop_status')) {
                         updateStatusTokoUI(Number(response.data[0].shop_status) === 1, isExpired);
