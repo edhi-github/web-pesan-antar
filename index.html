@@ -220,7 +220,7 @@
         // ==========================================
         // LOGIKA SESSION & VALIDASI REFRESH OTOMATIS
         // ==========================================
-        const MAX_SESSION_AGE_MS = 0.1 * 60 * 60 * 1000; // Contoh: 1 Jam (Ubah sesuai kebutuhan, misal 6 * 60 * 60 * 1000 untuk 6 jam)
+        const MAX_SESSION_AGE_MS = 2 * 60 * 60 * 1000; // Contoh: 1 Jam (Ubah sesuai kebutuhan, misal 6 * 60 * 60 * 1000 untuk 6 jam)
 
         function periksaDanValidasiSesi() {
             const lastVisit = localStorage.getItem('last_visit_time');
