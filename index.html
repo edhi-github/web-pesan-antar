@@ -568,8 +568,20 @@
                 const response = await res.json();
 
                 if (!response.success) {
-                    alert(`⚠️ Reservasi Gagal:\n${response.message}`);
-                    muatProdukDariDatabase();
+                    // JIKA ADA ITEM YANG KEHABISAN STOK / TAK CUKUP
+                    if (response.out_of_stock_id) {
+                        alert(`⚠️ ${response.message}\nItem ini telah otomatis dihapus dari keranjang Anda.`);
+                        
+                        // Hapus semua item terkait ID produk tersebut dari keranjang lokal
+                        keranjang = keranjang.filter(item => String(item.product_id) !== String(response.out_of_stock_id));
+                        
+                        // Hitung ulang total & update tampilan menu
+                        hitungTotal();
+                        muatProdukDariDatabase();
+                    } else {
+                        alert(`⚠️ Reservasi Gagal:\n${response.message}`);
+                        muatProdukDariDatabase();
+                    }
                     return;
                 }
 
@@ -584,7 +596,7 @@
                 renderModalItems();
                 mulaiTimerReservasi(response.expires_at);
                 
-                // Refresh stok menu di halaman utama agar pelanggan lain lihat stok berkurang
+                // Refresh stok menu di halaman utama
                 muatProdukDariDatabase();
 
             } catch (err) {
